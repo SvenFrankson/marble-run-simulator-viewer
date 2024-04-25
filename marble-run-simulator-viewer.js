@@ -305,6 +305,7 @@ class Game {
         this.physicDT = 0.0005;
         this.averagedFPS = 0;
         this.updateConfigTimeout = -1;
+        this.mode = GameMode.Demo;
         this._showGraphicAutoUpdateAlertInterval = 0;
         this._pointerDownX = 0;
         this._pointerDownY = 0;
@@ -356,7 +357,7 @@ class Game {
         return this.scene;
     }
     get currentTimeFactor() {
-        return this.timeFactor * (this.mode === GameMode.Home ? 0.5 : 1);
+        return this.timeFactor;
     }
     getGraphicQ() {
         return 2;
@@ -534,36 +535,30 @@ class Game {
             else {
                 this.timeFactor = this.timeFactor * 0.9 + this.targetTimeFactor * 0.1;
             }
-            if ((this.mode === GameMode.Home || this.mode === GameMode.Demo)) {
-                this.averagedFPS = 0.99 * this.averagedFPS + 0.01 * fps;
-                if (this.averagedFPS < 24 && this.getGraphicQ() > 0) {
-                    if (this.updateConfigTimeout === -1) {
-                        this.updateConfigTimeout = setTimeout(() => {
-                            if ((this.mode === GameMode.Home || this.mode === GameMode.Demo)) {
-                                let newConfig = this.getGraphicQ() - 1;
-                                //this.config.setValue("graphicQ", newConfig, true);
-                                this.showGraphicAutoUpdateAlert();
-                            }
-                            this.updateConfigTimeout = -1;
-                        }, 5000);
-                    }
+            this.averagedFPS = 0.99 * this.averagedFPS + 0.01 * fps;
+            if (this.averagedFPS < 24 && this.getGraphicQ() > 0) {
+                if (this.updateConfigTimeout === -1) {
+                    this.updateConfigTimeout = setTimeout(() => {
+                        let newConfig = this.getGraphicQ() - 1;
+                        //this.config.setValue("graphicQ", newConfig, true);
+                        this.showGraphicAutoUpdateAlert();
+                        this.updateConfigTimeout = -1;
+                    }, 5000);
                 }
-                else if (this.averagedFPS > 58 && this.getGraphicQ() < 2) {
-                    if (this.updateConfigTimeout === -1) {
-                        this.updateConfigTimeout = setTimeout(() => {
-                            if ((this.mode === GameMode.Home || this.mode === GameMode.Demo)) {
-                                let newConfig = this.getGraphicQ() + 1;
-                                //this.config.setValue("graphicQ", newConfig, true);
-                                this.showGraphicAutoUpdateAlert();
-                            }
-                            this.updateConfigTimeout = -1;
-                        }, 5000);
-                    }
+            }
+            else if (this.averagedFPS > 58 && this.getGraphicQ() < 2) {
+                if (this.updateConfigTimeout === -1) {
+                    this.updateConfigTimeout = setTimeout(() => {
+                        let newConfig = this.getGraphicQ() + 1;
+                        //this.config.setValue("graphicQ", newConfig, true);
+                        this.showGraphicAutoUpdateAlert();
+                        this.updateConfigTimeout = -1;
+                    }, 5000);
                 }
-                else {
-                    clearTimeout(this.updateConfigTimeout);
-                    this.updateConfigTimeout = -1;
-                }
+            }
+            else {
+                clearTimeout(this.updateConfigTimeout);
+                this.updateConfigTimeout = -1;
             }
         }
     }
@@ -647,15 +642,6 @@ class Game {
                 }
                 this.targetCamAlpha = -0.2 * Math.PI - Math.random() * Math.PI * 0.6;
                 this.targetCamBeta = 0.3 * Math.PI + Math.random() * Math.PI * 0.4;
-            }
-        }
-        else if (camMode === CameraMode.Selected) {
-            if (this.mode === GameMode.Create) {
-                this.cameraMode = camMode;
-                this.targetCamAlpha = this.camera.alpha;
-                this.targetCamBeta = this.camera.beta;
-                this.targetCamRadius = this.camera.radius;
-                this.targetCamTarget.copyFrom(this.camera.target);
             }
         }
         else if (camMode === CameraMode.Transition) {
@@ -853,7 +839,6 @@ customElements.define("nabu-popup", Popup);
 class Toolbar {
     constructor(game) {
         this.game = game;
-        this.camModeInputShown = false;
         this.timeFactorInputShown = false;
         this.loadInputShown = false;
         this.soundInputShown = false;
@@ -877,20 +862,6 @@ class Toolbar {
             if (this.zoomInputShown) {
                 this.zoomInput.value = this.game.getCameraZoomFactor().toFixed(3);
             }
-            if (this.camModeInputShown) {
-                if (this.game.cameraMode === CameraMode.None) {
-                    this.camValue.innerText = "None";
-                }
-                else if (this.game.cameraMode === CameraMode.Ball) {
-                    this.camValue.innerText = "Ball";
-                }
-                else if (this.game.cameraMode === CameraMode.Landscape) {
-                    this.camValue.innerText = "Landscape";
-                }
-                else if (this.game.cameraMode === CameraMode.Selected) {
-                    this.camValue.innerText = "Selected";
-                }
-            }
         };
         this.onPlay = () => {
             this.game.machine.playing = true;
@@ -907,18 +878,6 @@ class Toolbar {
         };
         this.onTimeFactorInput = (e) => {
             this.game.targetTimeFactor = parseFloat(e.target.value);
-        };
-        this.onCamButton = () => {
-            this.camModeInputShown = !this.camModeInputShown;
-            this.resize();
-        };
-        this.onCamPrevButton = () => {
-            this.game.setCameraMode(this.game.cameraMode - 1);
-            this.resize();
-        };
-        this.onCamNextButton = () => {
-            this.game.setCameraMode(this.game.cameraMode + 1);
-            this.resize();
         };
         this.onSave = () => {
             let data = this.game.machine.serialize();
@@ -962,19 +921,8 @@ class Toolbar {
         this.onZoomInput = (e) => {
             this.game.setCameraZoomFactor(parseFloat(e.target.value));
         };
-        this.onLayer = (e) => {
-            let rect = this.layerButton.getBoundingClientRect();
-            let centerY = rect.top + rect.height * 0.5;
-            if (e.y > centerY) {
-                //this.game.machineEditor.currentLayer++;
-            }
-            else {
-                //this.game.machineEditor.currentLayer--;
-            }
-        };
         this.closeAllDropdowns = () => {
-            if (this.camModeInputShown || this.timeFactorInputShown || this.loadInputShown || this.soundInputShown || this.zoomInputShown) {
-                this.camModeInputShown = false;
+            if (this.timeFactorInputShown || this.loadInputShown || this.soundInputShown || this.zoomInputShown) {
                 this.timeFactorInputShown = false;
                 this.loadInputShown = false;
                 this.soundInputShown = false;
@@ -995,20 +943,10 @@ class Toolbar {
         this.timeFactorButton = document.querySelector("#toolbar-time-factor");
         this.timeFactorButton.addEventListener("click", this.onTimeFactorButton);
         this.timeFactorValue = document.querySelector("#toolbar-time-factor .value");
-        this.camButton = document.querySelector("#toolbar-cam-mode");
-        this.camButton.addEventListener("click", this.onCamButton);
-        this.camButtonPrev = document.querySelector("#toolbar-cam-mode-prev");
-        this.camButtonPrev.addEventListener("click", this.onCamPrevButton);
-        this.camValue = document.querySelector("#toolbar-cam-mode-value");
-        this.camButtonNext = document.querySelector("#toolbar-cam-mode-next");
-        this.camButtonNext.addEventListener("click", this.onCamNextButton);
-        this.camInputContainer = this.camValue.parentElement;
         this.timeFactorInput = document.querySelector("#time-factor-value");
         this.timeFactorInput.value = this.game.targetTimeFactor.toFixed(2);
         this.timeFactorInput.addEventListener("input", this.onTimeFactorInput);
         this.timeFactorInputContainer = this.timeFactorInput.parentElement;
-        this.saveButton = document.querySelector("#toolbar-save");
-        this.saveButton.addEventListener("click", this.onSave);
         this.loadButton = document.querySelector("#toolbar-load");
         this.loadButton.addEventListener("click", this.onLoad);
         this.loadInput = document.querySelector("#load-input");
@@ -1026,9 +964,6 @@ class Toolbar {
         this.zoomInput.value = this.game.getCameraZoomFactor().toFixed(3);
         this.zoomInput.addEventListener("input", this.onZoomInput);
         this.zoomInputContainer = this.zoomInput.parentElement;
-        this.layerButton = document.querySelector("#toolbar-layer");
-        this.layerButton.addEventListener("click", this.onLayer);
-        this.backButton = document.querySelector("#toolbar-back");
         this.resize();
         this.game.canvas.addEventListener("pointerdown", this.closeAllDropdowns);
         this.game.scene.onBeforeRenderObservable.add(this._udpate);
@@ -1038,36 +973,8 @@ class Toolbar {
         this.game.scene.onBeforeRenderObservable.removeCallback(this._udpate);
     }
     updateButtonsVisibility() {
-        if (this.game.mode === GameMode.Home) {
-            this.saveButton.style.display = "none";
-            this.loadButton.style.display = "none";
-            this.loadInputShown = false;
-            this.backButton.style.display = "none";
-        }
-        else if (this.game.mode === GameMode.Page) {
-            this.saveButton.style.display = "none";
-            this.loadButton.style.display = "none";
-            this.loadInputShown = false;
-            this.backButton.style.display = "";
-        }
-        else if (this.game.mode === GameMode.Create) {
-            this.saveButton.style.display = "";
-            this.loadButton.style.display = "";
-            this.backButton.style.display = "";
-        }
-        else if (this.game.mode === GameMode.Challenge) {
-            this.saveButton.style.display = "none";
-            this.loadButton.style.display = "none";
-            this.loadInputShown = false;
-            this.backButton.style.display = "";
-        }
-        else if (this.game.mode === GameMode.Demo) {
-            this.saveButton.style.display = "none";
-            this.loadButton.style.display = "none";
-            this.loadInputShown = false;
-            this.backButton.style.display = "";
-        }
-        this.camButton.style.display = "none";
+        this.loadButton.style.display = "none";
+        this.loadInputShown = false;
     }
     resize() {
         this.updateButtonsVisibility();
@@ -1075,14 +982,9 @@ class Toolbar {
         this.container.style.bottom = "10px";
         let containerWidth = this.container.clientWidth;
         this.container.style.left = ((this.game.engine.getRenderWidth() - containerWidth) * 0.5) + "px";
-        this.camInputContainer.style.display = this.camModeInputShown ? "" : "none";
-        let rectButton = this.camButton.getBoundingClientRect();
-        let rectContainer = this.camInputContainer.getBoundingClientRect();
-        this.camInputContainer.style.left = (rectButton.left).toFixed(0) + "px";
-        this.camInputContainer.style.top = (rectButton.top - rectContainer.height - margin).toFixed(0) + "px";
         this.timeFactorInputContainer.style.display = this.timeFactorInputShown ? "" : "none";
-        rectButton = this.timeFactorButton.getBoundingClientRect();
-        rectContainer = this.timeFactorInputContainer.getBoundingClientRect();
+        let rectButton = this.timeFactorButton.getBoundingClientRect();
+        let rectContainer = this.timeFactorInputContainer.getBoundingClientRect();
         this.timeFactorInputContainer.style.left = (rectButton.left).toFixed(0) + "px";
         this.timeFactorInputContainer.style.top = (rectButton.top - rectContainer.height - margin).toFixed(0) + "px";
         this.loadInputContainer.style.display = this.loadInputShown ? "" : "none";
@@ -1107,8 +1009,7 @@ class Topbar {
         this.game = game;
         this._shown = true;
         this.camModeButtons = [];
-        this._udpate = () => {
-        };
+        this._udpate = () => { };
     }
     initialize() {
         this.container = document.querySelector("#topbar");
@@ -1138,19 +1039,9 @@ class Topbar {
         for (let i = 0; i < this.camModeButtons.length; i++) {
             this.camModeButtons[i].style.display = this._shown ? "" : "none";
         }
-        if (this.game.mode === GameMode.Create || this.game.mode === GameMode.Demo) {
-            this.container.style.display = "block";
-            if (this._shown) {
-                if (this.game.mode === GameMode.Create) {
-                    this.camModeButtons[CameraMode.Selected].style.display = "";
-                }
-                else {
-                    this.camModeButtons[CameraMode.Selected].style.display = "none";
-                }
-            }
-        }
-        else {
-            this.container.style.display = "none";
+        this.container.style.display = "block";
+        if (this._shown) {
+            this.camModeButtons[CameraMode.Selected].style.display = "none";
         }
     }
     resize() {
@@ -1162,7 +1053,7 @@ class Topbar {
             this.container.style.left = "0px";
             this.container.style.width = "13.5vh";
         }
-        this.camModeButtons.forEach(button => {
+        this.camModeButtons.forEach((button) => {
             button.classList.remove("active");
         });
         if (this.camModeButtons[this.game.cameraMode]) {

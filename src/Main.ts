@@ -72,7 +72,7 @@ class Game {
     public targetTimeFactor: number = 0.8;
     public timeFactor: number = 0.1;
     public get currentTimeFactor(): number {
-        return this.timeFactor * (this.mode === GameMode.Home ? 0.5 : 1); 
+        return this.timeFactor; 
     }
     public physicDT: number = 0.0005;
 
@@ -335,41 +335,35 @@ class Game {
             else {
                 this.timeFactor = this.timeFactor * 0.9 + this.targetTimeFactor * 0.1;
             }
-            if ((this.mode === GameMode.Home || this.mode === GameMode.Demo)) {
-                this.averagedFPS = 0.99 * this.averagedFPS + 0.01 * fps;
-                if (this.averagedFPS < 24 && this.getGraphicQ() > 0) {
-                    if (this.updateConfigTimeout === - 1) {
-                        this.updateConfigTimeout = setTimeout(() => {
-                            if ((this.mode === GameMode.Home || this.mode === GameMode.Demo)) {
-                                let newConfig = this.getGraphicQ() - 1;
-                                //this.config.setValue("graphicQ", newConfig, true);
-                                this.showGraphicAutoUpdateAlert();
-                            }
-                            this.updateConfigTimeout = -1;
-                        }, 5000);
-                    }
+            this.averagedFPS = 0.99 * this.averagedFPS + 0.01 * fps;
+            if (this.averagedFPS < 24 && this.getGraphicQ() > 0) {
+                if (this.updateConfigTimeout === - 1) {
+                    this.updateConfigTimeout = setTimeout(() => {
+                        let newConfig = this.getGraphicQ() - 1;
+                        //this.config.setValue("graphicQ", newConfig, true);
+                        this.showGraphicAutoUpdateAlert();
+                        this.updateConfigTimeout = -1;
+                    }, 5000);
                 }
-                else if (this.averagedFPS > 58 && this.getGraphicQ() < 2) {
-                    if (this.updateConfigTimeout === - 1) {
-                        this.updateConfigTimeout = setTimeout(() => {
-                            if ((this.mode === GameMode.Home || this.mode === GameMode.Demo)) {
-                                let newConfig = this.getGraphicQ() + 1;
-                                //this.config.setValue("graphicQ", newConfig, true);
-                                this.showGraphicAutoUpdateAlert();
-                            }
-                            this.updateConfigTimeout = -1;
-                        }, 5000);
-                    }
+            }
+            else if (this.averagedFPS > 58 && this.getGraphicQ() < 2) {
+                if (this.updateConfigTimeout === - 1) {
+                    this.updateConfigTimeout = setTimeout(() => {
+                        let newConfig = this.getGraphicQ() + 1;
+                        //this.config.setValue("graphicQ", newConfig, true);
+                        this.showGraphicAutoUpdateAlert();
+                        this.updateConfigTimeout = -1;
+                    }, 5000);
                 }
-                else {
-                    clearTimeout(this.updateConfigTimeout);
-                    this.updateConfigTimeout = -1;
-                }
+            }
+            else {
+                clearTimeout(this.updateConfigTimeout);
+                this.updateConfigTimeout = -1;
             }
         }
     }
 
-    public mode: GameMode;
+    public mode: GameMode = GameMode.Demo;
 
     public updateCameraLayer(): void {
         if (this.camera) {
@@ -461,15 +455,6 @@ class Game {
                 }
                 this.targetCamAlpha = - 0.2 * Math.PI - Math.random() * Math.PI * 0.6;
                 this.targetCamBeta = 0.3 * Math.PI + Math.random() * Math.PI * 0.4;
-            }
-        }
-        else if (camMode === CameraMode.Selected) {
-            if (this.mode === GameMode.Create) {
-                this.cameraMode = camMode;
-                this.targetCamAlpha = this.camera.alpha;
-                this.targetCamBeta = this.camera.beta;
-                this.targetCamRadius = this.camera.radius;
-                this.targetCamTarget.copyFrom(this.camera.target);
             }
         }
         else if (camMode === CameraMode.Transition) {
