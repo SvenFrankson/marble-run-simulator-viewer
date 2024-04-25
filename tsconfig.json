@@ -1,0 +1,15 @@
+{
+    "compilerOptions": {
+        "target": "esnext",
+        "outFile": "./marble-run-simulator-viewer.js",
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true,
+        "strict": false
+    },
+    "exclude": [
+        "lib",
+        "*.d.ts"
+    ],
+    "compileOnSave": true,
+    "buildOnSave": true
+}
