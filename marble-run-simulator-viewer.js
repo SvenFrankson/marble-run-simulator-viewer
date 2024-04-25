@@ -898,8 +898,10 @@ class Toolbar {
                     this.game.machine.deserialize(JSON.parse(event.target.result));
                     this.game.machine.instantiate();
                     this.game.machine.generateBaseMesh();
-                    for (let i = 0; i < this.game.machine.balls.length; i++) {
-                        this.game.machine.balls[i].setShowPositionZeroGhost(true);
+                    if (this.game.mode === GameMode.Create) {
+                        for (let i = 0; i < this.game.machine.balls.length; i++) {
+                            this.game.machine.balls[i].setShowPositionZeroGhost(true);
+                        }
                     }
                     this.loadInputShown = false;
                     this.resize();
@@ -972,12 +974,7 @@ class Toolbar {
         this.game.canvas.removeEventListener("pointerdown", this.closeAllDropdowns);
         this.game.scene.onBeforeRenderObservable.removeCallback(this._udpate);
     }
-    updateButtonsVisibility() {
-        this.loadButton.style.display = "none";
-        this.loadInputShown = false;
-    }
     resize() {
-        this.updateButtonsVisibility();
         let margin = 10;
         this.container.style.bottom = "10px";
         let containerWidth = this.container.clientWidth;
