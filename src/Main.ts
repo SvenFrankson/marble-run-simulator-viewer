@@ -224,24 +224,41 @@ class Game {
 
         let location = window.location.href;
         let args = location.split("/");
+        let index: number;
         let arg = args.find(a => { return a.indexOf("#machine") != - 1 });
-        let index = parseInt(arg.replace("#machine?id=", ""));
-        if (isFinite(index)) {
-            let dataResponse = await fetch(SHARE_SERVICE_PATH + "machine/" + index.toFixed(0));
-            if (dataResponse) {
-                let data = await dataResponse.json();
-                if (data) {
-                    this.machine.dispose();
-                    this.machine.deserialize(data);
-
-                    this.machine.generateBaseMesh();
-                    this.machine.instantiate().then(() => {
-                        this.updateMachineAuthorAndName();
-                        this.machine.play();
-                        this.setCameraMode(CameraMode.Landscape);
-                    });
-                }
+        let dataResponse: Response;
+        if (arg) {
+            index = parseInt(arg.replace("#machine?id=", ""));
+            if (isFinite(index)) {
+                dataResponse = await fetch(SHARE_SERVICE_PATH + "machine/" + index.toFixed(0));
             }
+        }
+
+        console.log(dataResponse.status);
+        if (dataResponse && dataResponse.status === 200) {
+            let data = await dataResponse.json();
+            if (data) {
+                this.machine.dispose();
+                this.machine.deserialize(data);
+
+                this.machine.generateBaseMesh();
+                this.machine.instantiate().then(() => {
+                    this.updateMachineAuthorAndName();
+                    this.machine.play();
+                    this.setCameraMode(CameraMode.Landscape);
+                });
+            }
+        }
+        else {
+            this.machine.dispose();
+            this.machine.deserialize(fallbackMachine);
+
+            this.machine.generateBaseMesh();
+            this.machine.instantiate().then(() => {
+                this.updateMachineAuthorAndName();
+                this.machine.play();
+                this.setCameraMode(CameraMode.Landscape);
+            });
         }
 
         this.canvas.addEventListener("pointerdown", this.onPointerDown);
@@ -610,8 +627,12 @@ class Game {
 
     public updateMachineAuthorAndName(): void {
         if (this.machine) {
+            (document.querySelector("#machine-title") as HTMLDivElement).style.display = "block";
             (document.querySelector("#machine-name .value") as HTMLDivElement).innerHTML = this.machine.name;
             (document.querySelector("#machine-author .value") as HTMLDivElement).innerHTML = this.machine.author;
+        }
+        else {
+            (document.querySelector("#machine-title") as HTMLDivElement).style.display = "none";
         }
     }
 }
