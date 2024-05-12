@@ -10,8 +10,6 @@
 		<script src="./lib/marble-run-simulator-core/marble-run-simulator-core.js"></script>
 		<script src="./marble-run-simulator-viewer.js"></script>
 		<link rel="stylesheet" type="text/css" href="./styles/app.css">
-		<link rel="stylesheet" type="text/css" href="./styles/option-page.css">
-		<link rel="stylesheet" type="text/css" href="./styles/machine-editor.css">
 	</head>
 	<body>
 		<div id="topbar" style="display: none">
@@ -100,6 +98,10 @@
         <canvas id="background-canvas" class="full-screen"></canvas>
         <canvas id="render-canvas" class="full-screen"></canvas>
 		<div id="screenshot-frame" style="display: none;"></div>
+		<div id="machine-title">
+			<div id="machine-name"><span class="value">The Great Machine</span></div>
+			<div id="machine-author-line"><span>created by </span><span id="machine-author"><span class="value">Sven</span></span></div>
+		</div>
 		
 	</body>
 </html>

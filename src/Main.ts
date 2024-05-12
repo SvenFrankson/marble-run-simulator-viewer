@@ -3,6 +3,7 @@
 /// <reference path="../../mummu/mummu.d.ts"/>
 /// <reference path="../../marble-run-simulator-core/marble-run-simulator-core.d.ts"/>
 
+var SHARE_SERVICE_PATH: string = "https://tiaratum.com/index.php/";
 
 import Core = MarbleRunSimulatorCore;
 
@@ -199,6 +200,7 @@ class Game {
         }
         this.machine = new Core.Machine(this);
 
+        /*
         let dataResponse = await fetch("./datas/demos/demo-6.json");
         if (dataResponse) {
             let data = await dataResponse.json();
@@ -206,6 +208,7 @@ class Game {
                 this.machine.deserialize(data);
             }
         }
+        */
 
         this.topbar = new Topbar(this);
         this.topbar.initialize();
@@ -215,10 +218,30 @@ class Game {
         this.toolbar.initialize();
         this.toolbar.resize();
 
-        await this.machine.generateBaseMesh();
-        await this.machine.instantiate();
         if (this.room) {
             await this.room.instantiate();
+        }
+
+        let location = window.location.href;
+        let args = location.split("/");
+        let arg = args.find(a => { return a.indexOf("#machine") != - 1 });
+        let index = parseInt(arg.replace("#machine?id=", ""));
+        if (isFinite(index)) {
+            let dataResponse = await fetch(SHARE_SERVICE_PATH + "machine/" + index.toFixed(0));
+            if (dataResponse) {
+                let data = await dataResponse.json();
+                if (data) {
+                    this.machine.dispose();
+                    this.machine.deserialize(data);
+
+                    this.machine.generateBaseMesh();
+                    this.machine.instantiate().then(() => {
+                        this.updateMachineAuthorAndName();
+                        this.machine.play();
+                        this.setCameraMode(CameraMode.Landscape);
+                    });
+                }
+            }
         }
 
         this.canvas.addEventListener("pointerdown", this.onPointerDown);
@@ -582,6 +605,13 @@ class Game {
     public onWheelEvent = (event: WheelEvent) => {
         if (this.cameraMode === CameraMode.Ball || this.cameraMode === CameraMode.Landscape) {
             this.setCameraMode(CameraMode.None);
+        }
+    }
+
+    public updateMachineAuthorAndName(): void {
+        if (this.machine) {
+            (document.querySelector("#machine-name .value") as HTMLDivElement).innerHTML = this.machine.name;
+            (document.querySelector("#machine-author .value") as HTMLDivElement).innerHTML = this.machine.author;
         }
     }
 }

@@ -260,6 +260,7 @@ class HelperShape {
 /// <reference path="../../nabu/nabu.d.ts"/>
 /// <reference path="../../mummu/mummu.d.ts"/>
 /// <reference path="../../marble-run-simulator-core/marble-run-simulator-core.d.ts"/>
+var SHARE_SERVICE_PATH = "https://tiaratum.com/index.php/";
 var Core = MarbleRunSimulatorCore;
 function addLine(text) {
     let e = document.createElement("div");
@@ -418,6 +419,7 @@ class Game {
             this.room = new Core.Room(this);
         }
         this.machine = new Core.Machine(this);
+        /*
         let dataResponse = await fetch("./datas/demos/demo-6.json");
         if (dataResponse) {
             let data = await dataResponse.json();
@@ -425,16 +427,35 @@ class Game {
                 this.machine.deserialize(data);
             }
         }
+        */
         this.topbar = new Topbar(this);
         this.topbar.initialize();
         this.topbar.resize();
         this.toolbar = new Toolbar(this);
         this.toolbar.initialize();
         this.toolbar.resize();
-        await this.machine.generateBaseMesh();
-        await this.machine.instantiate();
         if (this.room) {
             await this.room.instantiate();
+        }
+        let location = window.location.href;
+        let args = location.split("/");
+        let arg = args.find(a => { return a.indexOf("#machine") != -1; });
+        let index = parseInt(arg.replace("#machine?id=", ""));
+        if (isFinite(index)) {
+            let dataResponse = await fetch(SHARE_SERVICE_PATH + "machine/" + index.toFixed(0));
+            if (dataResponse) {
+                let data = await dataResponse.json();
+                if (data) {
+                    this.machine.dispose();
+                    this.machine.deserialize(data);
+                    this.machine.generateBaseMesh();
+                    this.machine.instantiate().then(() => {
+                        this.updateMachineAuthorAndName();
+                        this.machine.play();
+                        this.setCameraMode(CameraMode.Landscape);
+                    });
+                }
+            }
         }
         this.canvas.addEventListener("pointerdown", this.onPointerDown);
         this.canvas.addEventListener("pointerup", this.onPointerUp);
@@ -736,6 +757,12 @@ class Game {
                 }, 75);
             }
         }, 8);
+    }
+    updateMachineAuthorAndName() {
+        if (this.machine) {
+            document.querySelector("#machine-name .value").innerHTML = this.machine.name;
+            document.querySelector("#machine-author .value").innerHTML = this.machine.author;
+        }
     }
 }
 window.addEventListener("DOMContentLoaded", async () => {
