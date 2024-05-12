@@ -463,6 +463,12 @@ panel-page {
     border-radius: var(--button-height);
 }
 
+.btn.l {
+    width: var(--button-l-size);
+    height: var(--button-height);
+    border-radius: var(--button-height);
+}
+
 .btn.slimL {
     width: var(--button-l-size);
     height: var(--button-xs-size);
@@ -491,6 +497,13 @@ panel-page {
 }
 
 .btn.m .label {
+    position: absolute;
+    top: var(--half-button-height);
+    left: var(--half-button-height);
+    transform: translate(calc(var(--half-button-height) * -0.5), -50%);
+}
+
+.btn.l .label {
     position: absolute;
     top: var(--half-button-height);
     left: var(--half-button-height);
@@ -526,6 +539,14 @@ panel-page {
 .btn img {
     height: 60%;
     fill: white;
+}
+
+#tmp-soon {
+    position: relative;
+    top: calc(var(--half-button-height) * -2);
+    font-weight: lighter;
+    color: rgb(189, 189, 189);
+    font-size: calc(var(--half-button-height) * 1);
 }
 
 #toolbar .dropdown {
@@ -593,4 +614,71 @@ panel-page {
 #machine-author {
     font-size: min(3svh, 3vw);
     font-weight: bold;
+}
+
+soon-menu {
+    outline: 4px solid white;
+    border-radius: 15px;
+    position: fixed;
+    padding: min(5svh, 5vw);
+    top: calc((100svh - min(55svh, 55vw)) * 0.5);
+    left: calc((100vw - min(55svh, 55vw)) * 0.5);
+    width: min(45svh, 45vw);
+    height: min(45svh, 45vw);
+    font-family: Roboto;
+    font-size: min(2.3svh, 2.3vw);
+    font-weight: 300;
+    text-align: justify;
+    color: white;
+    background-color: #272b2e;
+    user-select: text;
+}
+
+soon-menu .soon-menu-title {
+    font-size: min(4svh, 4vw);
+    margin: min(1svh, 1vw);
+    position: absolute;
+    left: min(2svh, 2vw);
+    top: min(-2svh, -2vw);
+    outline: 4px solid white;
+    border-radius: 10px;
+    background-color: #272b2e;
+    padding-left: 20px;
+    padding-top: 8px;
+    padding-right: 20px;
+    padding-bottom: 5px;
+}
+
+soon-menu button {
+    font-family: Roboto;
+    font-size: min(3svh, 3vw);
+    font-weight: bold;
+    display: block;
+    margin-top: 7%;
+    margin-bottom: 7%;
+    padding-top: 2%;
+    padding-bottom: 2%;
+    width: 65%;
+    margin-left: 17.5%;
+    text-align: center;
+    border: 2px solid white;
+    background-color: #00000080;
+    color: white;
+    border-radius: 5px;
+}
+
+soon-menu a:link { 
+    color: white;
+}
+
+soon-menu a:visited { 
+    color: white;
+}
+
+soon-menu a:hover { 
+    color: white;
+}
+
+soon-menu a:active { 
+    color: white;
 }

@@ -314,6 +314,7 @@ class Game {
         this.toolbar = new Toolbar(this);
         this.toolbar.initialize();
         this.toolbar.resize();
+        this.soonView = document.getElementsByTagName("soon-menu")[0];
         if (this.room) {
             await this.room.instantiate();
         }
@@ -328,7 +329,6 @@ class Game {
                 dataResponse = await fetch(SHARE_SERVICE_PATH + "machine/" + index.toFixed(0));
             }
         }
-        console.log(dataResponse.status);
         if (dataResponse && dataResponse.status === 200) {
             let data = await dataResponse.json();
             if (data) {
@@ -762,6 +762,175 @@ class Popup extends HTMLElement {
     }
 }
 customElements.define("nabu-popup", Popup);
+class SoonView extends HTMLElement {
+    constructor() {
+        super(...arguments);
+        this._loaded = false;
+        this._shown = false;
+        this.currentPointers = 0;
+        this.generatedUrl = "";
+        this.isShared = false;
+        this._timer = 0;
+    }
+    static get observedAttributes() {
+        return [];
+    }
+    get shown() {
+        return this._shown;
+    }
+    get onLoad() {
+        return this._onLoad;
+    }
+    set onLoad(callback) {
+        this._onLoad = callback;
+        if (this._loaded) {
+            this._onLoad();
+        }
+    }
+    currentPointerUp() {
+        if (this._options.length > 0) {
+            this.setPointer((this.currentPointers - 1 + this._options.length) % this._options.length);
+        }
+    }
+    currentPointerDown() {
+        if (this._options.length > 0) {
+            this.setPointer((this.currentPointers + 1) % this._options.length);
+        }
+    }
+    setPointer(n) {
+        if (this._options[this.currentPointers]) {
+            this._options[this.currentPointers].classList.remove("highlit");
+        }
+        this.currentPointers = n;
+        if (this._options[this.currentPointers]) {
+            this._options[this.currentPointers].classList.add("highlit");
+        }
+    }
+    connectedCallback() {
+        this.style.display = "none";
+        this.style.opacity = "0";
+        this._title = document.createElement("h1");
+        this._title.classList.add("soon-menu-title");
+        this._title.innerHTML = "Coming soon !";
+        this.appendChild(this._title);
+        let categoriesContainer;
+        categoriesContainer = document.createElement("div");
+        this.appendChild(categoriesContainer);
+        this._shareInfo = document.createElement("div");
+        this._shareInfo.innerHTML = `
+            <p>Full edition mode of <b>Marble Run Simulator</b> is coming soon <b>(June 2024)</b> for free on <a href='https://poki.com/'>Poki.com</a>, featuring dozens of parameterizable track elements&nbsp;!</p>
+        `;
+        categoriesContainer.appendChild(this._shareInfo);
+        this._saveInfo = document.createElement("div");
+        this._saveInfo.innerHTML = `
+            <p>Make sure you don't miss the release by <a href='https://twitter.com/tiaratumgames'>following me on X</a></p>
+            <p>See you :)</p>
+            <p style='font-style: italic;'>Sven Frankson</p>
+        `;
+        categoriesContainer.appendChild(this._saveInfo);
+        this._returnBtn = document.createElement("button");
+        this._returnBtn.innerHTML = "RETURN";
+        categoriesContainer.appendChild(this._returnBtn);
+        this._returnBtn.onclick = () => {
+            this.hide(0.1);
+        };
+        this._options = [
+            this._returnBtn
+        ];
+    }
+    attributeChangedCallback(name, oldValue, newValue) { }
+    async show(duration = 1) {
+        return new Promise((resolve) => {
+            if (!this._shown) {
+                this._shown = true;
+                this.style.display = "block";
+                let opacity0 = parseFloat(this.style.opacity);
+                let opacity1 = 1;
+                let t0 = performance.now();
+                let step = () => {
+                    let t = performance.now();
+                    let dt = (t - t0) / 1000;
+                    if (dt >= duration) {
+                        this.style.opacity = "1";
+                        resolve();
+                    }
+                    else {
+                        let f = dt / duration;
+                        this.style.opacity = ((1 - f) * opacity0 + f * opacity1).toFixed(2);
+                        requestAnimationFrame(step);
+                    }
+                };
+                step();
+            }
+        });
+    }
+    async hide(duration = 1) {
+        if (duration === 0) {
+            this._shown = false;
+            this.style.display = "none";
+            this.style.opacity = "0";
+        }
+        else {
+            return new Promise((resolve) => {
+                if (this._shown) {
+                    this._shown = false;
+                    this.style.display = "block";
+                    let opacity0 = parseFloat(this.style.opacity);
+                    let opacity1 = 0;
+                    let t0 = performance.now();
+                    let step = () => {
+                        let t = performance.now();
+                        let dt = (t - t0) / 1000;
+                        if (dt >= duration) {
+                            this.style.display = "none";
+                            this.style.opacity = "0";
+                            if (this.onNextHide) {
+                                this.onNextHide();
+                                this.onNextHide = undefined;
+                            }
+                            resolve();
+                        }
+                        else {
+                            let f = dt / duration;
+                            this.style.opacity = ((1 - f) * opacity0 + f * opacity1).toFixed(2);
+                            requestAnimationFrame(step);
+                        }
+                    };
+                    step();
+                }
+            });
+        }
+    }
+    setGame(game) {
+        this.game = game;
+    }
+    update(dt) {
+        if (this._timer > 0) {
+            this._timer -= dt;
+        }
+        let gamepads = navigator.getGamepads();
+        let gamepad = gamepads[0];
+        if (gamepad) {
+            let axis1 = -Nabu.InputManager.DeadZoneAxis(gamepad.axes[1]);
+            if (axis1 > 0.5) {
+                if (this._timer <= 0) {
+                    this.currentPointerUp();
+                    this._timer = 0.5;
+                }
+            }
+            else if (axis1 < -0.5) {
+                if (this._timer <= 0) {
+                    this.currentPointerDown();
+                    this._timer = 0.5;
+                }
+            }
+            else {
+                this._timer = 0;
+            }
+        }
+    }
+}
+customElements.define("soon-menu", SoonView);
 class Toolbar {
     constructor(game) {
         this.game = game;
@@ -849,6 +1018,9 @@ class Toolbar {
         this.onZoomInput = (e) => {
             this.game.setCameraZoomFactor(parseFloat(e.target.value));
         };
+        this.onEdit = () => {
+            this.game.soonView.show();
+        };
         this.closeAllDropdowns = () => {
             if (this.timeFactorInputShown || this.loadInputShown || this.soundInputShown || this.zoomInputShown) {
                 this.timeFactorInputShown = false;
@@ -892,6 +1064,8 @@ class Toolbar {
         this.zoomInput.value = this.game.getCameraZoomFactor().toFixed(3);
         this.zoomInput.addEventListener("input", this.onZoomInput);
         this.zoomInputContainer = this.zoomInput.parentElement;
+        this.editButton = document.querySelector("#toolbar-edit");
+        this.editButton.addEventListener("click", this.onEdit);
         this.resize();
         this.game.canvas.addEventListener("pointerdown", this.closeAllDropdowns);
         this.game.scene.onBeforeRenderObservable.add(this._udpate);

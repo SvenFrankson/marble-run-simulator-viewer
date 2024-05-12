@@ -65,6 +65,7 @@ class Game {
 
     public topbar: Topbar;
     public toolbar: Toolbar;
+    public soonView: SoonView;
 
     public animateCamera = Mummu.AnimationFactory.EmptyNumbersCallback;
     public animateCameraTarget = Mummu.AnimationFactory.EmptyVector3Callback;
@@ -218,6 +219,8 @@ class Game {
         this.toolbar.initialize();
         this.toolbar.resize();
 
+        this.soonView = document.getElementsByTagName("soon-menu")[0] as SoonView;
+
         if (this.room) {
             await this.room.instantiate();
         }
@@ -234,7 +237,6 @@ class Game {
             }
         }
 
-        console.log(dataResponse.status);
         if (dataResponse && dataResponse.status === 200) {
             let data = await dataResponse.json();
             if (data) {

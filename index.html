@@ -9,6 +9,7 @@
 		<script src="./lib/mummu/mummu.js"></script>
 		<script src="./lib/marble-run-simulator-core/marble-run-simulator-core.js"></script>
 		<script src="./marble-run-simulator-viewer.js"></script>
+		<link rel="stylesheet" type="text/css" href="./styles/fonts.css">
 		<link rel="stylesheet" type="text/css" href="./styles/app.css">
 	</head>
 	<body>
@@ -93,6 +94,12 @@
 			<div class="dropdown">
 				<input id="zoom-value" type="range" orient="vertical" min="0" max="1" step ="0.001"/>	
 			</div>
+
+			<button id="toolbar-edit" class="btn l" title="Edit">
+				<img class="label" src="./datas/icons/edit.svg"/>
+				<span class="value">EDITOR&nbsp;</span>
+				<div id="tmp-soon">Coming soon !</div>
+			</button>
 		</div>
 
         <canvas id="background-canvas" class="full-screen"></canvas>
@@ -102,6 +109,6 @@
 			<div id="machine-name"><span class="value"></span></div>
 			<div id="machine-author-line"><span>created by </span><span id="machine-author"><span class="value"></span></span></div>
 		</div>
-		
+		<soon-menu id="soon-menu"></soon-menu>
 	</body>
 </html>

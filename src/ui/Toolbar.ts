@@ -18,6 +18,8 @@ class Toolbar {
     public zoomButton: HTMLButtonElement;
     public zoomInputContainer: HTMLDivElement;
     public zoomInput: HTMLInputElement;
+    
+    public editButton: HTMLButtonElement;
 
     public timeFactorInputShown: boolean = false;
     public loadInputShown: boolean = false;
@@ -78,6 +80,9 @@ class Toolbar {
 
         this.zoomInputContainer = this.zoomInput.parentElement as HTMLDivElement;
         
+        this.editButton = document.querySelector("#toolbar-edit") as HTMLButtonElement;
+        this.editButton.addEventListener("click", this.onEdit);
+
         this.resize();
 
         this.game.canvas.addEventListener("pointerdown", this.closeAllDropdowns);
@@ -212,6 +217,10 @@ class Toolbar {
 
     public onZoomInput = (e: InputEvent) => {
         this.game.setCameraZoomFactor(parseFloat((e.target as HTMLInputElement).value));
+    }
+
+    public onEdit = () => {
+        this.game.soonView.show();
     }
 
     public closeAllDropdowns = () => {
