@@ -184,6 +184,7 @@ class Game {
         this.targetTimeFactor = 0.8;
         this.timeFactor = 0.1;
         this.physicDT = 0.0005;
+        this._graphicQ = 0;
         this.averagedFPS = 0;
         this.updateConfigTimeout = -1;
         this.mode = GameMode.Demo;
@@ -241,7 +242,33 @@ class Game {
         return this.timeFactor;
     }
     getGraphicQ() {
-        return 2;
+        return this._graphicQ;
+    }
+    async setGraphicQ(v) {
+        this._graphicQ = v;
+        if (this.machine) {
+            let save = undefined;
+            if (this.machine.playing && this.machine.instantiated) {
+                save = this.machine.getBallPos();
+            }
+            let data = this.machine.serialize();
+            this.machine.dispose();
+            this.machine.deserialize(data);
+            await this.machine.instantiate();
+            if (save) {
+                this.machine.applyBallPos(save);
+            }
+            this.updateMachineAuthorAndName();
+        }
+        if (this.room) {
+            this.room.dispose();
+        }
+        if (this._graphicQ > 0) {
+            this.room = new Core.Room(this);
+            this.room.instantiate();
+        }
+        this.updateCameraLayer();
+        this.updateShadowGenerator();
     }
     async createScene() {
         this.scene = new BABYLON.Scene(this.engine);
@@ -451,30 +478,36 @@ class Game {
             else {
                 this.timeFactor = this.timeFactor * 0.9 + this.targetTimeFactor * 0.1;
             }
-            this.averagedFPS = 0.99 * this.averagedFPS + 0.01 * fps;
-            if (this.averagedFPS < 24 && this.getGraphicQ() > 0) {
-                if (this.updateConfigTimeout === -1) {
-                    this.updateConfigTimeout = setTimeout(() => {
-                        let newConfig = this.getGraphicQ() - 1;
-                        //this.config.setValue("graphicQ", newConfig, true);
-                        this.showGraphicAutoUpdateAlert();
-                        this.updateConfigTimeout = -1;
-                    }, 5000);
+            if ((this.mode === GameMode.Home || this.mode === GameMode.Demo)) {
+                this.averagedFPS = 0.99 * this.averagedFPS + 0.01 * fps;
+                if (this.averagedFPS < 24 && this.getGraphicQ() > 0) {
+                    if (this.updateConfigTimeout === -1) {
+                        this.updateConfigTimeout = setTimeout(() => {
+                            if ((this.mode === GameMode.Home || this.mode === GameMode.Demo)) {
+                                let newConfig = this.getGraphicQ() - 1;
+                                this.setGraphicQ(newConfig);
+                                this.showGraphicAutoUpdateAlert();
+                            }
+                            this.updateConfigTimeout = -1;
+                        }, 4000);
+                    }
                 }
-            }
-            else if (this.averagedFPS > 58 && this.getGraphicQ() < 2) {
-                if (this.updateConfigTimeout === -1) {
-                    this.updateConfigTimeout = setTimeout(() => {
-                        let newConfig = this.getGraphicQ() + 1;
-                        //this.config.setValue("graphicQ", newConfig, true);
-                        this.showGraphicAutoUpdateAlert();
-                        this.updateConfigTimeout = -1;
-                    }, 5000);
+                else if (this.averagedFPS > 58 && this.getGraphicQ() < 2) {
+                    if (this.updateConfigTimeout === -1) {
+                        this.updateConfigTimeout = setTimeout(() => {
+                            if ((this.mode === GameMode.Home || this.mode === GameMode.Demo)) {
+                                let newConfig = this.getGraphicQ() + 1;
+                                this.setGraphicQ(newConfig);
+                                this.showGraphicAutoUpdateAlert();
+                            }
+                            this.updateConfigTimeout = -1;
+                        }, 4000);
+                    }
                 }
-            }
-            else {
-                clearTimeout(this.updateConfigTimeout);
-                this.updateConfigTimeout = -1;
+                else {
+                    clearTimeout(this.updateConfigTimeout);
+                    this.updateConfigTimeout = -1;
+                }
             }
         }
     }
