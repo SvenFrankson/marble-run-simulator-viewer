@@ -88,7 +88,7 @@ class Game {
 
     public helperShape: HelperShape;
 
-    private _graphicQ: number = 0;
+    private _graphicQ: number = 1;
     public getGraphicQ(): number {
         return this._graphicQ;
     }
