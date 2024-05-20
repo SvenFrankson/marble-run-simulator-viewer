@@ -85,15 +85,22 @@
 				<input id="sound-value" type="range" orient="vertical" min="0" max="1" step ="0.01"/>	
 			</div>
 
-			<button id="toolbar-zoom" class="btn s" title="Zoom">
+			<button id="toolbar-zoom-out" class="btn s" title="Zoom Out">
 				<svg class="label" viewBox="0 0 100 100">
-					<circle cx="65" cy="35" r="25" fill="none" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"></circle>
-					<path d="M15 85 L45 55" fill="none" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"></path>
+					<circle cx="60" cy="40" r="35" fill="none" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"></circle>
+					<path d="M10 90 L30 70" fill="none" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"></path>
+					<path d="M50 40 L70 40" fill="none" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"></path>
 				</svg>
 			</button>
-			<div class="dropdown">
-				<input id="zoom-value" type="range" orient="vertical" min="0" max="1" step ="0.001"/>	
-			</div>
+
+			<button id="toolbar-zoom-in" class="btn s" title="Zoom In">
+				<svg class="label" viewBox="0 0 100 100">
+					<circle cx="60" cy="40" r="35" fill="none" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"></circle>
+					<path d="M10 90 L30 70" fill="none" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"></path>
+					<path d="M50 40 L70 40" fill="none" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"></path>
+					<path d="M60 30 L60 50" fill="none" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"></path>
+				</svg>
+			</button>
 
 			<button id="toolbar-edit" class="btn l" title="Edit">
 				<img class="label" src="./datas/icons/edit.svg"/>

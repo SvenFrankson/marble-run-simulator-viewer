@@ -15,9 +15,8 @@ class Toolbar {
     public soundButton: HTMLButtonElement;
     public soundInputContainer: HTMLDivElement;
     public soundInput: HTMLInputElement;
-    public zoomButton: HTMLButtonElement;
-    public zoomInputContainer: HTMLDivElement;
-    public zoomInput: HTMLInputElement;
+    public zoomOutButton: HTMLButtonElement;
+    public zoomInButton: HTMLButtonElement;
     
     public editButton: HTMLButtonElement;
 
@@ -71,14 +70,11 @@ class Toolbar {
 
         this.soundInputContainer = this.soundInput.parentElement as HTMLDivElement;
 
-        this.zoomButton = document.querySelector("#toolbar-zoom") as HTMLButtonElement;
-        this.zoomButton.addEventListener("click", this.onZoomButton);
-
-        this.zoomInput = document.querySelector("#zoom-value") as HTMLInputElement;
-        this.zoomInput.value = this.game.getCameraZoomFactor().toFixed(3);
-        this.zoomInput.addEventListener("input", this.onZoomInput);
-
-        this.zoomInputContainer = this.zoomInput.parentElement as HTMLDivElement;
+        this.zoomOutButton = document.querySelector("#toolbar-zoom-out") as HTMLButtonElement;
+        this.zoomOutButton.addEventListener("click", this.onZoomOutButton);
+        
+        this.zoomInButton = document.querySelector("#toolbar-zoom-in") as HTMLButtonElement;
+        this.zoomInButton.addEventListener("click", this.onZoomInButton)
         
         this.editButton = document.querySelector("#toolbar-edit") as HTMLButtonElement;
         this.editButton.addEventListener("click", this.onEdit);
@@ -117,12 +113,6 @@ class Toolbar {
         rectContainer = this.soundInputContainer.getBoundingClientRect();
         this.soundInputContainer.style.left = (rectButton.left).toFixed(0) + "px";
         this.soundInputContainer.style.top = (rectButton.top - rectContainer.height - margin).toFixed(0) + "px";
-        
-        this.zoomInputContainer.style.display = this.zoomInputShown ? "" : "none";
-        rectButton = this.zoomButton.getBoundingClientRect();
-        rectContainer = this.zoomInputContainer.getBoundingClientRect();
-        this.zoomInputContainer.style.left = (rectButton.left).toFixed(0) + "px";
-        this.zoomInputContainer.style.top = (rectButton.top - rectContainer.height - margin).toFixed(0) + "px";
     }
 
     private _lastPlaying: boolean;
@@ -141,9 +131,6 @@ class Toolbar {
                 this.resize();
             }
             this.timeFactorValue.innerText = this.game.currentTimeFactor.toFixed(2);
-        }
-        if (this.zoomInputShown) {
-            this.zoomInput.value = this.game.getCameraZoomFactor().toFixed(3);
         }
     }
 
@@ -210,14 +197,13 @@ class Toolbar {
         this.game.mainVolume = parseFloat((e.target as HTMLInputElement).value);
     }
 
-    public onZoomButton = () => {
-        this.zoomInputShown = !this.zoomInputShown;
-        this.resize();
-    }
+    public onZoomOutButton = () => {
+        this.game.setCameraZoomFactor(this.game.getCameraZoomFactor() - 0.05);
+    };
 
-    public onZoomInput = (e: InputEvent) => {
-        this.game.setCameraZoomFactor(parseFloat((e.target as HTMLInputElement).value));
-    }
+    public onZoomInButton = () => {
+        this.game.setCameraZoomFactor(this.game.getCameraZoomFactor() + 0.05);
+    };
 
     public onEdit = () => {
         this.game.soonView.show();

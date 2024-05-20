@@ -57,6 +57,7 @@ class Game {
     public targetCamAlpha: number = - Math.PI * 0.5;
     public targetCamBeta: number = Math.PI * 0.4;
     public targetCamRadius: number = 0.3;
+    public targetCamRadiusFromWheel: boolean = false;
     private _trackTargetCamSpeed: number = 0;
     public onFocusCallback: () => void;
 
@@ -71,7 +72,13 @@ class Game {
     public animateCameraTarget = Mummu.AnimationFactory.EmptyVector3Callback;
 
     public mainVolume: number = 0;
-    public targetTimeFactor: number = 0.8;
+    private _targetTimeFactor: number = 0.8;
+    public get targetTimeFactor(): number {
+        return this._targetTimeFactor;
+    }
+    public set targetTimeFactor(v: number) {
+        this._targetTimeFactor = Nabu.MinMax(v, 1 / 32, 1);
+    }
     public timeFactor: number = 0.1;
     public get currentTimeFactor(): number {
         return this.timeFactor; 
@@ -348,12 +355,17 @@ class Game {
             let target = BABYLON.Vector3.Lerp(this.camera.target, camTarget, this._trackTargetCamSpeed * dt);
             let alpha = Nabu.Step(this.camera.alpha, this.targetCamAlpha, Math.PI * speed * dt);
             let beta = Nabu.Step(this.camera.beta, this.targetCamBeta, Math.PI * speed * dt);
-            let radius = Nabu.Step(this.camera.radius, this.targetCamRadius, 10 * speed * dt);
+            let radius = Nabu.Step(this.camera.radius, this.targetCamRadius, 20 * speed * dt);
     
             this.camera.target.copyFrom(target);
             this.camera.alpha = alpha;
             this.camera.beta = beta;
-            this.camera.radius = radius;
+            if (!this.targetCamRadiusFromWheel) {
+                this.camera.radius = radius;
+            }
+            else {
+                this.targetCamRadius = this.camera.radius;
+            }
 
             if (this.cameraMode >= CameraMode.Focusing) {
                 if (Math.abs(this.camera.alpha - this.targetCamAlpha) < Math.PI / 180) {
@@ -404,9 +416,12 @@ class Game {
             else {
                 this.timeFactor = this.timeFactor * 0.9 + this.targetTimeFactor * 0.1;
             }
+            
+            let imposedTimeFactorRatio = this.timeFactor / this.targetTimeFactor;
+
             if ((this.mode === GameMode.Home || this.mode === GameMode.Demo)) {
                 this.averagedFPS = 0.99 * this.averagedFPS + 0.01 * fps;
-                if (this.averagedFPS < 24 && this.getGraphicQ() > 0) {
+                if ((this.averagedFPS < 24 || imposedTimeFactorRatio < 0.6) && this.getGraphicQ() > 0) {
                     if (this.updateConfigTimeout === - 1) {
                         this.updateConfigTimeout = setTimeout(() => {
                             if ((this.mode === GameMode.Home || this.mode === GameMode.Demo)) {
@@ -418,7 +433,7 @@ class Game {
                         }, 4000);
                     }
                 }
-                else if (this.averagedFPS > 58 && this.getGraphicQ() < 2) {
+                else if (this.averagedFPS > 58 && imposedTimeFactorRatio > 0.99 && this.getGraphicQ() < 2) {
                     if (this.updateConfigTimeout === - 1) {
                         this.updateConfigTimeout = setTimeout(() => {
                             if ((this.mode === GameMode.Home || this.mode === GameMode.Demo)) {
@@ -501,13 +516,26 @@ class Game {
     }
 
     public getCameraZoomFactor(): number {
-        let f = 1 - (this.camera.radius - this.camera.lowerRadiusLimit) / (this.camera.upperRadiusLimit - this.camera.lowerRadiusLimit);
+        let f = 1;
+        if (this.cameraMode === CameraMode.Ball || this.cameraMode === CameraMode.Landscape) {
+            f = 1 - (this.targetCamRadius - this.camera.lowerRadiusLimit) / (this.camera.upperRadiusLimit - this.camera.lowerRadiusLimit);
+        }
+        else {
+            f = 1 - (this.camera.radius - this.camera.lowerRadiusLimit) / (this.camera.upperRadiusLimit - this.camera.lowerRadiusLimit);
+        }
         return f * f;
     }
 
     public setCameraZoomFactor(v: number) {
+        this.targetCamRadiusFromWheel = false;
+        v = Nabu.MinMax(v, 0, 1);
         let f = Math.sqrt(v);
-        this.camera.radius = (1 - f) * (this.camera.upperRadiusLimit - this.camera.lowerRadiusLimit) + this.camera.lowerRadiusLimit;
+        if (this.cameraMode === CameraMode.Ball || this.cameraMode === CameraMode.Landscape) {
+            this.targetCamRadius = (1 - f) * (this.camera.upperRadiusLimit - this.camera.lowerRadiusLimit) + this.camera.lowerRadiusLimit;
+        }
+        else {
+            this.animateCamera([this.camera.alpha, this.camera.beta, (1 - f) * (this.camera.upperRadiusLimit - this.camera.lowerRadiusLimit) + this.camera.lowerRadiusLimit], 0.3);
+        }
     }
 
     public setCameraMode(camMode: CameraMode): void {
@@ -517,6 +545,7 @@ class Game {
     
             }
             else {
+                this.targetCamRadiusFromWheel = false;
                 if (this.cameraMode === CameraMode.Ball) {
                     this.targetCamRadius = 0.3;
                 }
@@ -656,7 +685,7 @@ class Game {
 
     public onWheelEvent = (event: WheelEvent) => {
         if (this.cameraMode === CameraMode.Ball || this.cameraMode === CameraMode.Landscape) {
-            this.setCameraMode(CameraMode.None);
+            this.targetCamRadiusFromWheel = true;
         }
     }
 
