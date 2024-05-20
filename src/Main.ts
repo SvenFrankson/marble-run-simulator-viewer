@@ -190,7 +190,7 @@ class Game {
         this.spotLight.shadowMinZ = 1;
         this.spotLight.shadowMaxZ = 3;
 
-        this.skybox = BABYLON.MeshBuilder.CreateSphere("skyBox", { diameter: 20, sideOrientation: BABYLON.Mesh.BACKSIDE }, this.scene);
+        this.skybox = BABYLON.MeshBuilder.CreateSphere("skyBox", { diameter: 20, segments: 8, sideOrientation: BABYLON.Mesh.BACKSIDE }, this.scene);
         this.skybox.layerMask = 0x10000000;
         let skyboxMaterial: BABYLON.StandardMaterial = new BABYLON.StandardMaterial("skyBox", this.scene);
         skyboxMaterial.backFaceCulling = false;
