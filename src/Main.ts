@@ -124,6 +124,7 @@ class Game {
         }
         this.updateCameraLayer();
         this.updateShadowGenerator();
+        window.localStorage.setItem("saved-graphic-q", this._graphicQ.toFixed(0));
     }
 
     public gridIMin: number;
@@ -164,6 +165,13 @@ class Game {
             let v = parseFloat(savedTimeFactor);
             if (isFinite(v)) {
                 this.targetTimeFactor = Math.max(Math.min(v, 1), 0);
+            }
+        }
+        let savedGraphicQ = window.localStorage.getItem("saved-graphic-q");
+        if (savedGraphicQ) {
+            let v = parseInt(savedGraphicQ);
+            if (isFinite(v)) {
+                this._graphicQ = Math.floor(Math.max(Math.min(v, 2), 0));
             }
         }
 	}
