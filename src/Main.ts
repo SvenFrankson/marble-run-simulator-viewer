@@ -273,7 +273,7 @@ class Game {
         let arg = args.find(a => { return a.indexOf("#machine") != - 1 });
         let dataResponse: Response;
         if (arg) {
-            index = parseInt(arg.replace("#machine?id=", ""));
+            index = parseInt(arg.split("#machine?id=")[1]);
             if (isFinite(index)) {
                 dataResponse = await fetch(SHARE_SERVICE_PATH + "machine/" + index.toFixed(0));
             }
