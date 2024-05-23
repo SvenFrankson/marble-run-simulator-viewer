@@ -226,7 +226,7 @@ class Game {
         if (savedGraphicQ) {
             let v = parseInt(savedGraphicQ);
             if (isFinite(v)) {
-                this._graphicQ = Math.floor(Math.max(Math.min(v, 2), 0));
+                //this._graphicQ = Math.floor(Math.max(Math.min(v, 2), 0));
             }
         }
     }
@@ -248,17 +248,7 @@ class Game {
     async setGraphicQ(v) {
         this._graphicQ = v;
         if (this.machine) {
-            let save = undefined;
-            if (this.machine.playing && this.machine.instantiated) {
-                save = this.machine.getBallPos();
-            }
-            let data = this.machine.serialize();
-            this.machine.dispose();
-            this.machine.deserialize(data);
-            await this.machine.instantiate();
-            if (save) {
-                this.machine.applyBallPos(save);
-            }
+            await this.machine.instantiate(true);
             this.updateMachineAuthorAndName();
         }
         if (this.room) {
@@ -271,6 +261,23 @@ class Game {
         this.updateCameraLayer();
         this.updateShadowGenerator();
         window.localStorage.setItem("saved-graphic-q", this._graphicQ.toFixed(0));
+    }
+    getGeometryQ() {
+        let graphicQ = this.getGraphicQ();
+        if (graphicQ === Core.GraphicQuality.Medium) {
+            return Core.GeometryQuality.Medium;
+        }
+        else if (graphicQ >= Core.GraphicQuality.High) {
+            return Core.GeometryQuality.High;
+        }
+        return Core.GeometryQuality.Low;
+    }
+    getMaterialQ() {
+        let graphicQ = this.getGraphicQ();
+        if (graphicQ >= Core.GraphicQuality.High) {
+            return Core.MaterialQuality.PBR;
+        }
+        return Core.MaterialQuality.Standard;
     }
     async createScene() {
         this.scene = new BABYLON.Scene(this.engine);
@@ -486,30 +493,33 @@ class Game {
                 this.timeFactor = this.timeFactor * 0.9 + this.targetTimeFactor * 0.1;
             }
             let imposedTimeFactorRatio = this.timeFactor / this.targetTimeFactor;
-            if ((this.mode === GameMode.Home || this.mode === GameMode.Demo)) {
+            if (this.machine.instantiated && (this.mode === GameMode.Home || this.mode === GameMode.Demo)) {
                 this.averagedFPS = 0.99 * this.averagedFPS + 0.01 * fps;
-                if ((this.averagedFPS < 24 || imposedTimeFactorRatio < 0.6) && this.getGraphicQ() > 0) {
+                if ((this.averagedFPS < 30 || imposedTimeFactorRatio < 0.8) && this.getGraphicQ() > Core.GraphicQuality.Low) {
                     if (this.updateConfigTimeout === -1) {
                         this.updateConfigTimeout = setTimeout(() => {
+                            let graphicQ = this.getGraphicQ();
                             if ((this.mode === GameMode.Home || this.mode === GameMode.Demo)) {
-                                let newConfig = this.getGraphicQ() - 1;
+                                this.machine.minimalAutoQualityFailed = graphicQ;
+                                let newConfig = graphicQ - 1;
                                 this.setGraphicQ(newConfig);
                                 this.showGraphicAutoUpdateAlert();
                             }
                             this.updateConfigTimeout = -1;
-                        }, 4000);
+                        }, 5000);
                     }
                 }
-                else if (this.averagedFPS > 58 && imposedTimeFactorRatio > 0.99 && this.getGraphicQ() < 2) {
+                else if (this.averagedFPS > 55 && imposedTimeFactorRatio > 0.99 && this.getGraphicQ() < this.machine.minimalAutoQualityFailed - 1) {
                     if (this.updateConfigTimeout === -1) {
                         this.updateConfigTimeout = setTimeout(() => {
+                            let graphicQ = this.getGraphicQ();
                             if ((this.mode === GameMode.Home || this.mode === GameMode.Demo)) {
-                                let newConfig = this.getGraphicQ() + 1;
+                                let newConfig = graphicQ + 1;
                                 this.setGraphicQ(newConfig);
                                 this.showGraphicAutoUpdateAlert();
                             }
                             this.updateConfigTimeout = -1;
-                        }, 4000);
+                        }, 5000);
                     }
                 }
                 else {
@@ -545,7 +555,7 @@ class Game {
     }
     updateShadowGenerator() {
         if (this.camera) {
-            if (this.getGraphicQ() > 1 && !this.shadowGenerator) {
+            if (this.getGraphicQ() >= Core.GraphicQuality.Ultra && !this.shadowGenerator) {
                 this.shadowGenerator = new BABYLON.ShadowGenerator(2048, this.spotLight);
                 this.shadowGenerator.useBlurExponentialShadowMap = true;
                 this.shadowGenerator.depthScale = 0.01;
@@ -673,14 +683,17 @@ class Game {
         if (message) {
             alert.innerText = message;
         }
-        else if (this.getGraphicQ() === 0) {
+        else if (this.getGraphicQ() === Core.GraphicQuality.Low) {
             alert.innerText = "Graphic Quality set to LOW";
         }
-        else if (this.getGraphicQ() === 1) {
+        else if (this.getGraphicQ() === Core.GraphicQuality.Medium) {
             alert.innerText = "Graphic Quality set to MEDIUM";
         }
-        else if (this.getGraphicQ() === 2) {
+        else if (this.getGraphicQ() === Core.GraphicQuality.High) {
             alert.innerText = "Graphic Quality set to HIGH";
+        }
+        else if (this.getGraphicQ() === Core.GraphicQuality.Ultra) {
+            alert.innerText = "Graphic Quality set to ULTRA";
         }
         alert.style.opacity = "0";
         alert.style.display = "block";
