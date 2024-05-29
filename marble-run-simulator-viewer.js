@@ -1,4 +1,4 @@
-var fallbackMachine = { "n": "Tiny Track", "a": "Sven", "v": 3, "d": "01i57hz4i1o0706hwi1hz203111000hyi1hz403121000hyi0hz211111006i0hzhz314121006hxhzhz304111000i0hzhz20110100bi2hyhz2311010" };
+var fallbackMachine = { "n": "Missing Machine", "a": "Tiaratum Games", "v": 3, "d": "01i57hz4i1o0706hwi1hz203111000hyi1hz403121000hyi0hz211111006i0hzhz314121006hxhzhz304111000i0hzhz20110100bi2hyhz2311010" };
 class HelperShape {
     constructor() {
         this.show = true;
@@ -172,7 +172,7 @@ class Game {
         this._targetTimeFactor = 0.8;
         this.timeFactor = 0.1;
         this.physicDT = 0.0005;
-        this._graphicQ = 1;
+        this._graphicQ = Core.GraphicQuality.Medium;
         this.averagedFPS = 0;
         this.updateConfigTimeout = -1;
         this.mode = GameMode.Demo;
@@ -226,7 +226,7 @@ class Game {
         if (savedGraphicQ) {
             let v = parseInt(savedGraphicQ);
             if (isFinite(v)) {
-                //this._graphicQ = Math.floor(Math.max(Math.min(v, 2), 0));
+                this._graphicQ = Math.floor(Math.max(Math.min(v, Core.GraphicQuality.High), Core.GraphicQuality.VeryLow));
             }
         }
     }
@@ -251,30 +251,22 @@ class Game {
             await this.machine.instantiate(true);
             this.updateMachineAuthorAndName();
         }
-        if (this.room) {
-            this.room.dispose();
-        }
-        if (this._graphicQ > 0) {
-            this.room = new Core.Room(this);
-            this.room.instantiate();
-        }
-        this.updateCameraLayer();
+        await this.room.setRoomIndex(this.room.contextualRoomIndex(this.room.currentRoomIndex));
         this.updateShadowGenerator();
-        window.localStorage.setItem("saved-graphic-q", this._graphicQ.toFixed(0));
     }
     getGeometryQ() {
         let graphicQ = this.getGraphicQ();
-        if (graphicQ === Core.GraphicQuality.Medium) {
-            return Core.GeometryQuality.Medium;
+        if (graphicQ === Core.GraphicQuality.VeryLow) {
+            return Core.GeometryQuality.Low;
         }
-        else if (graphicQ >= Core.GraphicQuality.High) {
+        else if (graphicQ === Core.GraphicQuality.High) {
             return Core.GeometryQuality.High;
         }
-        return Core.GeometryQuality.Low;
+        return Core.GeometryQuality.Medium;
     }
     getMaterialQ() {
         let graphicQ = this.getGraphicQ();
-        if (graphicQ >= Core.GraphicQuality.High) {
+        if (graphicQ >= Core.GraphicQuality.Medium) {
             return Core.MaterialQuality.PBR;
         }
         return Core.MaterialQuality.Standard;
@@ -331,19 +323,15 @@ class Game {
         }
         this.camera.attachControl();
         this.camera.getScene();
-        if (this.getGraphicQ()) {
-            this.room = new Core.Room(this);
+        this.room = new Core.Room(this);
+        this.room.onRoomJustInstantiated = () => { this.updateCameraLayer(); };
+        if (this.getGraphicQ() === 0) {
+            this.room.setRoomIndex(1, true);
+        }
+        else {
+            this.room.setRoomIndex(0, true);
         }
         this.machine = new Core.Machine(this);
-        /*
-        let dataResponse = await fetch("./datas/demos/demo-6.json");
-        if (dataResponse) {
-            let data = await dataResponse.json();
-            if (data) {
-                this.machine.deserialize(data);
-            }
-        }
-        */
         this.topbar = new Topbar(this);
         this.topbar.initialize();
         this.topbar.resize();
@@ -351,9 +339,6 @@ class Game {
         this.toolbar.initialize();
         this.toolbar.resize();
         this.soonView = document.getElementsByTagName("soon-menu")[0];
-        if (this.room) {
-            await this.room.instantiate();
-        }
         let location = window.location.href;
         let args = location.split("/");
         let index;
@@ -493,13 +478,13 @@ class Game {
                 this.timeFactor = this.timeFactor * 0.9 + this.targetTimeFactor * 0.1;
             }
             let imposedTimeFactorRatio = this.timeFactor / this.targetTimeFactor;
-            if (this.machine.instantiated && (this.mode === GameMode.Home || this.mode === GameMode.Demo)) {
+            if (this.machine.instantiated && true) {
                 this.averagedFPS = 0.99 * this.averagedFPS + 0.01 * fps;
-                if ((this.averagedFPS < 30 || imposedTimeFactorRatio < 0.8) && this.getGraphicQ() > Core.GraphicQuality.Low) {
+                if ((this.averagedFPS < 30 || imposedTimeFactorRatio < 0.8) && this.getGraphicQ() > Core.GraphicQuality.VeryLow) {
                     if (this.updateConfigTimeout === -1) {
                         this.updateConfigTimeout = setTimeout(() => {
                             let graphicQ = this.getGraphicQ();
-                            if ((this.mode === GameMode.Home || this.mode === GameMode.Demo)) {
+                            if (true) {
                                 this.machine.minimalAutoQualityFailed = graphicQ;
                                 let newConfig = graphicQ - 1;
                                 this.setGraphicQ(newConfig);
@@ -509,11 +494,11 @@ class Game {
                         }, 5000);
                     }
                 }
-                else if (this.averagedFPS > 55 && imposedTimeFactorRatio > 0.99 && this.getGraphicQ() < this.machine.minimalAutoQualityFailed - 1) {
+                else if ((this.averagedFPS > 59 && imposedTimeFactorRatio > 0.99) && this.getGraphicQ() < this.machine.minimalAutoQualityFailed - 1) {
                     if (this.updateConfigTimeout === -1) {
                         this.updateConfigTimeout = setTimeout(() => {
                             let graphicQ = this.getGraphicQ();
-                            if ((this.mode === GameMode.Home || this.mode === GameMode.Demo)) {
+                            if (true) {
                                 let newConfig = graphicQ + 1;
                                 this.setGraphicQ(newConfig);
                                 this.showGraphicAutoUpdateAlert();
@@ -555,7 +540,7 @@ class Game {
     }
     updateShadowGenerator() {
         if (this.camera) {
-            if (this.getGraphicQ() >= Core.GraphicQuality.Ultra && !this.shadowGenerator) {
+            if (this.getGraphicQ() >= Core.GraphicQuality.High && !this.shadowGenerator) {
                 this.shadowGenerator = new BABYLON.ShadowGenerator(2048, this.spotLight);
                 this.shadowGenerator.useBlurExponentialShadowMap = true;
                 this.shadowGenerator.depthScale = 0.01;
@@ -683,6 +668,9 @@ class Game {
         if (message) {
             alert.innerText = message;
         }
+        else if (this.getGraphicQ() === Core.GraphicQuality.VeryLow) {
+            alert.innerText = "Graphic Quality set to VERY LOW";
+        }
         else if (this.getGraphicQ() === Core.GraphicQuality.Low) {
             alert.innerText = "Graphic Quality set to LOW";
         }
@@ -691,9 +679,6 @@ class Game {
         }
         else if (this.getGraphicQ() === Core.GraphicQuality.High) {
             alert.innerText = "Graphic Quality set to HIGH";
-        }
-        else if (this.getGraphicQ() === Core.GraphicQuality.Ultra) {
-            alert.innerText = "Graphic Quality set to ULTRA";
         }
         alert.style.opacity = "0";
         alert.style.display = "block";
@@ -1003,9 +988,7 @@ class Toolbar {
     constructor(game) {
         this.game = game;
         this.timeFactorInputShown = false;
-        this.loadInputShown = false;
         this.soundInputShown = false;
-        this.zoomInputShown = false;
         this._udpate = () => {
             if (this.game.machine) {
                 if (this.game.machine.playing != this._lastPlaying) {
@@ -1044,10 +1027,6 @@ class Toolbar {
             window.localStorage.setItem("last-saved-machine", JSON.stringify(data));
             Nabu.download("my-marble-machine.json", JSON.stringify(data));
         };
-        this.onLoad = () => {
-            this.loadInputShown = !this.loadInputShown;
-            this.resize();
-        };
         this.onLoadInput = (event) => {
             let files = event.target.files;
             let file = files[0];
@@ -1063,7 +1042,6 @@ class Toolbar {
                             this.game.machine.balls[i].setShowPositionZeroGhost(true);
                         }
                     }
-                    this.loadInputShown = false;
                     this.resize();
                 });
                 reader.readAsText(file);
@@ -1086,11 +1064,9 @@ class Toolbar {
             this.game.soonView.show();
         };
         this.closeAllDropdowns = () => {
-            if (this.timeFactorInputShown || this.loadInputShown || this.soundInputShown || this.zoomInputShown) {
+            if (this.timeFactorInputShown || this.soundInputShown) {
                 this.timeFactorInputShown = false;
-                this.loadInputShown = false;
                 this.soundInputShown = false;
-                this.zoomInputShown = false;
                 this.resize();
             }
         };
@@ -1111,11 +1087,6 @@ class Toolbar {
         this.timeFactorInput.value = this.game.targetTimeFactor.toFixed(2);
         this.timeFactorInput.addEventListener("input", this.onTimeFactorInput);
         this.timeFactorInputContainer = this.timeFactorInput.parentElement;
-        this.loadButton = document.querySelector("#toolbar-load");
-        this.loadButton.addEventListener("click", this.onLoad);
-        this.loadInput = document.querySelector("#load-input");
-        this.loadInput.addEventListener("input", this.onLoadInput);
-        this.loadInputContainer = this.loadInput.parentElement;
         this.soundButton = document.querySelector("#toolbar-sound");
         this.soundButton.addEventListener("click", this.onSoundButton);
         this.soundInput = document.querySelector("#sound-value");
@@ -1146,11 +1117,6 @@ class Toolbar {
         let rectContainer = this.timeFactorInputContainer.getBoundingClientRect();
         this.timeFactorInputContainer.style.left = (rectButton.left).toFixed(0) + "px";
         this.timeFactorInputContainer.style.top = (rectButton.top - rectContainer.height - margin).toFixed(0) + "px";
-        this.loadInputContainer.style.display = this.loadInputShown ? "" : "none";
-        rectButton = this.loadButton.getBoundingClientRect();
-        rectContainer = this.loadInputContainer.getBoundingClientRect();
-        this.loadInputContainer.style.left = (rectButton.left).toFixed(0) + "px";
-        this.loadInputContainer.style.top = (rectButton.top - rectContainer.height - margin).toFixed(0) + "px";
         this.soundInputContainer.style.display = this.soundInputShown ? "" : "none";
         rectButton = this.soundButton.getBoundingClientRect();
         rectContainer = this.soundInputContainer.getBoundingClientRect();

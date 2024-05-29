@@ -95,7 +95,7 @@ class Game {
 
     public helperShape: HelperShape;
 
-    private _graphicQ: number = 1;
+    private _graphicQ: number = Core.GraphicQuality.Medium;
     public getGraphicQ(): number {
         return this._graphicQ;
     }
@@ -105,32 +105,24 @@ class Game {
             await this.machine.instantiate(true);
             this.updateMachineAuthorAndName();
         }
-        if (this.room) {
-            this.room.dispose();
-        }
-        if (this._graphicQ > 0) {
-            this.room = new Core.Room(this);
-            this.room.instantiate();
-        }
-        this.updateCameraLayer();
+        await this.room.setRoomIndex(this.room.contextualRoomIndex(this.room.currentRoomIndex));
         this.updateShadowGenerator();
-        window.localStorage.setItem("saved-graphic-q", this._graphicQ.toFixed(0));
     }
 
     public getGeometryQ(): Core.GeometryQuality {
         let graphicQ = this.getGraphicQ();
-        if (graphicQ === Core.GraphicQuality.Medium) {
-            return Core.GeometryQuality.Medium;
+        if (graphicQ === Core.GraphicQuality.VeryLow) {
+            return Core.GeometryQuality.Low;
         }
-        else if (graphicQ >= Core.GraphicQuality.High) {
+        else if (graphicQ === Core.GraphicQuality.High) {
             return Core.GeometryQuality.High
         }
-        return Core.GeometryQuality.Low;
+        return Core.GeometryQuality.Medium;
     }
 
     public getMaterialQ(): Core.MaterialQuality {
         let graphicQ = this.getGraphicQ();
-        if (graphicQ >= Core.GraphicQuality.High) {
+        if (graphicQ >= Core.GraphicQuality.Medium) {
             return Core.MaterialQuality.PBR
         }
         return Core.MaterialQuality.Standard;
@@ -180,7 +172,7 @@ class Game {
         if (savedGraphicQ) {
             let v = parseInt(savedGraphicQ);
             if (isFinite(v)) {
-                //this._graphicQ = Math.floor(Math.max(Math.min(v, 2), 0));
+                this._graphicQ = Math.floor(Math.max(Math.min(v, Core.GraphicQuality.High), Core.GraphicQuality.VeryLow));
             }
         }
 	}
@@ -247,20 +239,16 @@ class Game {
         this.camera.attachControl();
         this.camera.getScene();
 
-        if (this.getGraphicQ()) {
-            this.room = new Core.Room(this);
+        this.room = new Core.Room(this);
+        this.room.onRoomJustInstantiated = () => { this.updateCameraLayer(); };
+        if (this.getGraphicQ() === 0) {
+            this.room.setRoomIndex(1, true);
         }
-        this.machine = new Core.Machine(this);
+        else {
+            this.room.setRoomIndex(0, true);
+        }
 
-        /*
-        let dataResponse = await fetch("./datas/demos/demo-6.json");
-        if (dataResponse) {
-            let data = await dataResponse.json();
-            if (data) {
-                this.machine.deserialize(data);
-            }
-        }
-        */
+        this.machine = new Core.Machine(this);
 
         this.topbar = new Topbar(this);
         this.topbar.initialize();
@@ -271,10 +259,6 @@ class Game {
         this.toolbar.resize();
 
         this.soonView = document.getElementsByTagName("soon-menu")[0] as SoonView;
-
-        if (this.room) {
-            await this.room.instantiate();
-        }
 
         let location = window.location.href;
         let args = location.split("/");
@@ -433,16 +417,16 @@ class Game {
             else {
                 this.timeFactor = this.timeFactor * 0.9 + this.targetTimeFactor * 0.1;
             }
-            
+
             let imposedTimeFactorRatio = this.timeFactor / this.targetTimeFactor;
 
-            if (this.machine.instantiated && (this.mode === GameMode.Home || this.mode === GameMode.Demo)) {
+            if (this.machine.instantiated && true) {
                 this.averagedFPS = 0.99 * this.averagedFPS + 0.01 * fps;
-                if ((this.averagedFPS < 30 || imposedTimeFactorRatio < 0.8) && this.getGraphicQ() > Core.GraphicQuality.Low) {
+                if ((this.averagedFPS < 30 || imposedTimeFactorRatio < 0.8) && this.getGraphicQ() > Core.GraphicQuality.VeryLow) {
                     if (this.updateConfigTimeout === - 1) {
                         this.updateConfigTimeout = setTimeout(() => {
                             let graphicQ = this.getGraphicQ();
-                            if ((this.mode === GameMode.Home || this.mode === GameMode.Demo)) {
+                            if (true) {
                                 this.machine.minimalAutoQualityFailed = graphicQ;
                                 let newConfig = graphicQ - 1;
                                 this.setGraphicQ(newConfig);
@@ -452,11 +436,11 @@ class Game {
                         }, 5000);
                     }
                 }
-                else if (this.averagedFPS > 55 && imposedTimeFactorRatio > 0.99 && this.getGraphicQ() < this.machine.minimalAutoQualityFailed - 1) {
+                else if ((this.averagedFPS > 59 && imposedTimeFactorRatio > 0.99) && this.getGraphicQ() < this.machine.minimalAutoQualityFailed - 1) {
                     if (this.updateConfigTimeout === - 1) {
                         this.updateConfigTimeout = setTimeout(() => {
                             let graphicQ = this.getGraphicQ();
-                            if ((this.mode === GameMode.Home || this.mode === GameMode.Demo)) {
+                            if (true) {
                                 let newConfig = graphicQ + 1;
                                 this.setGraphicQ(newConfig);
                                 this.showGraphicAutoUpdateAlert();
@@ -504,7 +488,7 @@ class Game {
 
     public updateShadowGenerator(): void {
         if (this.camera) {
-            if (this.getGraphicQ() >= Core.GraphicQuality.Ultra && !this.shadowGenerator) {
+            if (this.getGraphicQ() >= Core.GraphicQuality.High && !this.shadowGenerator) {
                 this.shadowGenerator = new BABYLON.ShadowGenerator(2048, this.spotLight);
                 this.shadowGenerator.useBlurExponentialShadowMap = true;
                 this.shadowGenerator.depthScale = 0.01;
@@ -649,6 +633,9 @@ class Game {
         if (message) {
             alert.innerText = message;
         }
+        else if (this.getGraphicQ() === Core.GraphicQuality.VeryLow) {
+            alert.innerText = "Graphic Quality set to VERY LOW";
+        }
         else if (this.getGraphicQ() === Core.GraphicQuality.Low) {
             alert.innerText = "Graphic Quality set to LOW";
         }
@@ -657,9 +644,6 @@ class Game {
         }
         else if (this.getGraphicQ() === Core.GraphicQuality.High) {
             alert.innerText = "Graphic Quality set to HIGH";
-        }
-        else if (this.getGraphicQ() === Core.GraphicQuality.Ultra) {
-            alert.innerText = "Graphic Quality set to ULTRA";
         }
         alert.style.opacity = "0";
         alert.style.display = "block";

@@ -9,9 +9,6 @@ class Toolbar {
     public timeFactorValue: HTMLSpanElement;
     public timeFactorInputContainer: HTMLDivElement;
     public timeFactorInput: HTMLInputElement;
-    public loadButton: HTMLButtonElement;
-    public loadInputContainer: HTMLDivElement;
-    public loadInput: HTMLInputElement;
     public soundButton: HTMLButtonElement;
     public soundInputContainer: HTMLDivElement;
     public soundInput: HTMLInputElement;
@@ -21,9 +18,7 @@ class Toolbar {
     public editButton: HTMLButtonElement;
 
     public timeFactorInputShown: boolean = false;
-    public loadInputShown: boolean = false;
     public soundInputShown: boolean = false;
-    public zoomInputShown: boolean = false;
 
     constructor(public game: Game) {
 
@@ -52,14 +47,6 @@ class Toolbar {
         this.timeFactorInput.addEventListener("input", this.onTimeFactorInput);
 
         this.timeFactorInputContainer = this.timeFactorInput.parentElement as HTMLDivElement;
-
-        this.loadButton = document.querySelector("#toolbar-load") as HTMLButtonElement;
-        this.loadButton.addEventListener("click", this.onLoad);
-
-        this.loadInput = document.querySelector("#load-input") as HTMLInputElement;
-        this.loadInput.addEventListener("input", this.onLoadInput);
-
-        this.loadInputContainer = this.loadInput.parentElement as HTMLDivElement;
 
         this.soundButton = document.querySelector("#toolbar-sound") as HTMLButtonElement;
         this.soundButton.addEventListener("click", this.onSoundButton);
@@ -101,12 +88,6 @@ class Toolbar {
         let rectContainer = this.timeFactorInputContainer.getBoundingClientRect();
         this.timeFactorInputContainer.style.left = (rectButton.left).toFixed(0) + "px";
         this.timeFactorInputContainer.style.top = (rectButton.top - rectContainer.height - margin).toFixed(0) + "px";
-        
-        this.loadInputContainer.style.display = this.loadInputShown ? "" : "none";
-        rectButton = this.loadButton.getBoundingClientRect();
-        rectContainer = this.loadInputContainer.getBoundingClientRect();
-        this.loadInputContainer.style.left = (rectButton.left).toFixed(0) + "px";
-        this.loadInputContainer.style.top = (rectButton.top - rectContainer.height - margin).toFixed(0) + "px";
         
         this.soundInputContainer.style.display = this.soundInputShown ? "" : "none";
         rectButton = this.soundButton.getBoundingClientRect();
@@ -161,11 +142,6 @@ class Toolbar {
         Nabu.download("my-marble-machine.json", JSON.stringify(data));
     }
 
-    public onLoad = () => {
-        this.loadInputShown = !this.loadInputShown;
-        this.resize();
-    }
-
     public onLoadInput = (event: Event) => {
         let files = (event.target as HTMLInputElement).files;
         let file = files[0];
@@ -181,7 +157,6 @@ class Toolbar {
                         this.game.machine.balls[i].setShowPositionZeroGhost(true);
                     }
                 }
-                this.loadInputShown = false;
                 this.resize();
             });
             reader.readAsText(file);
@@ -210,11 +185,9 @@ class Toolbar {
     }
 
     public closeAllDropdowns = () => {
-        if (this.timeFactorInputShown || this.loadInputShown || this.soundInputShown || this.zoomInputShown) {
+        if (this.timeFactorInputShown || this.soundInputShown) {
             this.timeFactorInputShown = false;
-            this.loadInputShown = false;
             this.soundInputShown = false;
-            this.zoomInputShown = false;
             this.resize();
         }        
     }
