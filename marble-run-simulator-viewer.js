@@ -226,7 +226,7 @@ class Game {
         if (savedGraphicQ) {
             let v = parseInt(savedGraphicQ);
             if (isFinite(v)) {
-                this._graphicQ = Math.floor(Math.max(Math.min(v, Core.GraphicQuality.High), Core.GraphicQuality.VeryLow));
+                //this._graphicQ = Math.floor(Math.max(Math.min(v, Core.GraphicQuality.High), Core.GraphicQuality.VeryLow));
             }
         }
     }
@@ -355,11 +355,12 @@ class Game {
             if (data) {
                 this.machine.dispose();
                 this.machine.deserialize(data);
-                this.machine.generateBaseMesh();
-                this.machine.instantiate().then(() => {
-                    this.updateMachineAuthorAndName();
-                    this.machine.play();
-                    this.setCameraMode(CameraMode.Landscape);
+                this.machine.generateBaseMesh().then(() => {
+                    this.machine.instantiate().then(() => {
+                        this.updateMachineAuthorAndName();
+                        this.machine.play();
+                        this.setCameraMode(CameraMode.Landscape);
+                    });
                 });
             }
         }
@@ -398,14 +399,14 @@ class Game {
     async initialize() {
     }
     update() {
-        let dt = this.scene.deltaTime / 1000;
+        let rawDT = this.scene.deltaTime / 1000;
         if (this.DEBUG_MODE) {
             let camPos = this.camera.position;
             let camTarget = this.camera.target;
             window.localStorage.setItem("camera-position", JSON.stringify({ x: camPos.x, y: camPos.y, z: camPos.z }));
             window.localStorage.setItem("camera-target", JSON.stringify({ x: camTarget.x, y: camTarget.y, z: camTarget.z }));
         }
-        if (this.cameraMode != CameraMode.None && this.cameraMode != CameraMode.Selected && isFinite(dt)) {
+        if (this.cameraMode != CameraMode.None && this.cameraMode != CameraMode.Selected && isFinite(rawDT)) {
             let speed = 0.01;
             let camTarget = this.targetCamTarget;
             if (this.cameraMode === CameraMode.Ball && this.machine && this.machine.balls && this.machine.balls[0]) {
@@ -419,10 +420,10 @@ class Game {
             else {
                 this._trackTargetCamSpeed = 0.2;
             }
-            let target = BABYLON.Vector3.Lerp(this.camera.target, camTarget, this._trackTargetCamSpeed * dt);
-            let alpha = Nabu.Step(this.camera.alpha, this.targetCamAlpha, Math.PI * speed * dt);
-            let beta = Nabu.Step(this.camera.beta, this.targetCamBeta, Math.PI * speed * dt);
-            let radius = Nabu.Step(this.camera.radius, this.targetCamRadius, 20 * speed * dt);
+            let target = BABYLON.Vector3.Lerp(this.camera.target, camTarget, this._trackTargetCamSpeed * rawDT);
+            let alpha = Nabu.Step(this.camera.alpha, this.targetCamAlpha, Math.PI * speed * rawDT);
+            let beta = Nabu.Step(this.camera.beta, this.targetCamBeta, Math.PI * speed * rawDT);
+            let radius = Nabu.Step(this.camera.radius, this.targetCamRadius, 20 * speed * rawDT);
             this.camera.target.copyFrom(target);
             this.camera.alpha = alpha;
             this.camera.beta = beta;
@@ -469,18 +470,18 @@ class Game {
         if (this.machine) {
             this.machine.update();
         }
-        let fps = 1 / dt;
+        let fps = 1 / rawDT;
         if (isFinite(fps)) {
             if (fps < 24 && this.timeFactor > this.targetTimeFactor / 2) {
-                this.timeFactor *= 0.9;
+                this.timeFactor *= 0.99;
             }
             else {
-                this.timeFactor = this.timeFactor * 0.9 + this.targetTimeFactor * 0.1;
+                this.timeFactor = this.timeFactor * 0.99 + this.targetTimeFactor * 0.01;
             }
             let imposedTimeFactorRatio = this.timeFactor / this.targetTimeFactor;
             if (this.machine.instantiated && true) {
                 this.averagedFPS = 0.99 * this.averagedFPS + 0.01 * fps;
-                if ((this.averagedFPS < 30 || imposedTimeFactorRatio < 0.8) && this.getGraphicQ() > Core.GraphicQuality.VeryLow) {
+                if ((this.averagedFPS < 24 || imposedTimeFactorRatio < 0.8) && this.getGraphicQ() > Core.GraphicQuality.VeryLow) {
                     if (this.updateConfigTimeout === -1) {
                         this.updateConfigTimeout = setTimeout(() => {
                             let graphicQ = this.getGraphicQ();
@@ -494,7 +495,7 @@ class Game {
                         }, 5000);
                     }
                 }
-                else if ((this.averagedFPS > 59 && imposedTimeFactorRatio > 0.99) && this.getGraphicQ() < this.machine.minimalAutoQualityFailed - 1) {
+                else if (this.averagedFPS > 59 && imposedTimeFactorRatio > 0.99 && this.getGraphicQ() < this.machine.minimalAutoQualityFailed - 1) {
                     if (this.updateConfigTimeout === -1) {
                         this.updateConfigTimeout = setTimeout(() => {
                             let graphicQ = this.getGraphicQ();
@@ -511,6 +512,10 @@ class Game {
                     clearTimeout(this.updateConfigTimeout);
                     this.updateConfigTimeout = -1;
                 }
+            }
+            else {
+                clearTimeout(this.updateConfigTimeout);
+                this.updateConfigTimeout = -1;
             }
         }
     }
