@@ -5,16 +5,12 @@
 		<title>Marble Run Simulator Viewer</title>
 		<meta property="og:title" content="Marble Run Simulator" />
 		<meta property="og:image" content="https://tiaratum.com/viewer/preview.png" />
-		<script src="./lib/babylon.max.js"></script>
-		<script src="./lib/babylonjs.loaders.js"></script>
-		<script src="./lib/nabu/nabu.js"></script>
-		<script src="./lib/mummu/mummu.js"></script>
-		<script src="./lib/marble-run-simulator-core/marble-run-simulator-core.js"></script>
-		<script src="./marble-run-simulator-viewer.js"></script>
+		<script src="index.js"></script>
 		<link rel="stylesheet" type="text/css" href="./styles/fonts.css">
 		<link rel="stylesheet" type="text/css" href="./styles/app.css">
 	</head>
 	<body>
+		<panel-page id="main-menu" class="page" file="home-page.xhtml" anim-line-height="2"></panel-page>
 		<div id="topbar" style="display: none">
 			<button class="cam-mode-none btn slimL inactive" title="Camera Mode : None">
 				<span class="label">Manual</span>
@@ -66,6 +62,29 @@
 				<input id="time-factor-value" type="range" orient="vertical" min="0" max="1" step ="0.01"/>	
 			</div>
 
+			<button id="toolbar-save" class="btn s" title="Save">
+				<svg class="label" viewBox="0 0 100 100">
+					<path d="M15 84 L85 84 L85 90 L15 90 Z" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"></path>
+					<path d="M50 5 L50 55" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"></path>
+					<path d="M35 40 L50 60 L65 40 Z" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"></path>
+				</svg>
+			</button>
+
+			<button id="toolbar-load" class="btn s" title="Load">
+				<svg class="label" viewBox="0 0 100 100">
+					<path d="M15 84 L85 84 L85 90 L15 90 Z" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"></path>
+					<path d="M50 10 L50 60" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"></path>
+					<path d="M35 25 L50 5 L65 25 Z" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"></path>
+				</svg>
+			</button>
+			<div class="dropdown">
+				<input id="load-input" type="file"/>	
+			</div>
+
+			<button id="toolbar-share" class="btn s" title="Share">
+				<img class="label" src="./datas/icons/internet.png"/>
+			</button>
+
 			<button id="toolbar-sound" class="btn s" title="Volume">
 				<svg class="label" viewBox="0 0 100 100">
 					<path d="M10 40 L30 40 L50 20 L50 80 L30 60 L10 60 Z" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"></path>
@@ -93,24 +112,59 @@
 				</svg>
 			</button>
 
+			<button id="toolbar-layer" class="btn m"  title="Layer" style="display: none">
+				<svg class="label" viewBox="0 0 240 100">
+					<path d="M15 15 L75 5 L75 65 L15 75 Z" fill="none" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></path>
+					<path d="M35 30 L95 20 L95 80 L35 90 Z" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"></path>
+					<path d="M160 25 L180 5 L200 25" fill="none" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"></path>
+					<path d="M160 75 L180 95 L200 75" fill="none" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"></path>
+					<path d="M130 50 L230 50" fill="none" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path>
+				</svg>
+			</button>
+
 			<button id="toolbar-edit" class="btn l" title="Edit">
 				<img class="label" src="./datas/icons/edit.svg"/>
 				<span class="value">EDITOR&nbsp;</span>
-				<div id="tmp-soon">Coming soon !</div>
+			</button>
+
+			<button id="toolbar-screenshot" class="btn s"  title="Take circuit screenshot" style="display: none">
+				<svg class="label" viewBox="0 0 100 100">
+					<circle cx="80" cy="50" r="15" fill="none" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></circle>
+					<circle cx="65" cy="50" r="30" fill="none" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></circle>
+					<circle cx="50" cy="50" r="45" fill="none" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></circle>
+				</svg>
 			</button>
 		</div>
 
 		<div id="auto-update-graphic-alert" style="display: none;">
 			<div></div>
 		</div>
+
+		<canvas id="render-canvas" class="full-screen"></canvas>
 		
-        <canvas id="background-canvas" class="full-screen"></canvas>
-        <canvas id="render-canvas" class="full-screen"></canvas>
-		<div id="screenshot-frame" style="display: none;"></div>
 		<div id="machine-title" style="display: none;">
-			<div id="machine-name"><span class="value"></span></div>
-			<div id="machine-author-line"><span>created by </span><span id="machine-author"><span class="value"></span></span></div>
+			<div id="machine-name"><span class="value">The Great Machine</span><button class="edit" style="display: none;"></button></div>
+			<input id="machine-name-edit" value="The Great Machine" style="display: none;"></input>
+			<div id="machine-author-line" style="display: none;"><span>created by </span><span id="machine-author"><span class="value">Sven</span><button class="edit" style="display: none;"></button></span><input id="machine-author-edit" value="Sven" style="display: none;"></input></div>
 		</div>
-		<soon-menu id="soon-menu"></soon-menu>
+		<a href="#home"><button id="home-button" class="btn s"  title="Back to main menu">
+			<svg class="label" viewBox="0 0 100 100">
+				<path d="M10 10 L40 10 L40 40 L10 40 Z" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></path>
+				<path d="M60 10 L90 10 L90 40 L60 40 Z" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></path>
+				<path d="M60 60 L90 60 L90 90 L60 90 Z" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></path>
+				<path d="M10 60 L40 60 L40 90 L10 90 Z" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></path>
+			</svg>
+		</button></a>
+		<div id="click-anywhere-screen">
+			<div class="container">
+				<img class="splash-title" src="datas/icons/title-text-only.png"/>
+				<img class="white-track" src="datas/icons/white_track.png" style="opacity: 0;"/>
+				<div class="message-description">a marble machine construction game</div>
+				<div class="message-description-2">Imagine, Build, Share !</div>
+				<div class="message-bottom">Click or press anywhere to Enter</div>
+				<div id="loading-info" class="message-loading"></div>
+			</div>
+		</div>
+		<soon-menu id="soon-menu" style="display: none;"></soon-menu>
 	</body>
 </html>

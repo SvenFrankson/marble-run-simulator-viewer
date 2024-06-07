@@ -1,12 +1,16 @@
-Write-Debug "Make Build for Marble Run Simulator Viewer"
+Write-Debug "Make Build for Marble Fall"
 
 if (Test-Path "../marble-run-simulator-viewer-build") {
     Remove-Item "../marble-run-simulator-viewer-build" -Recurse -Force
 }
+if (Test-Path "../marble-run-simulator-viewer-build.zip") {
+    Remove-Item "../marble-run-simulator-viewer-build.zip" -Force
+}
+
 New-Item "../marble-run-simulator-viewer-build" -ItemType "directory"
 
 
-Copy-Item -Path "./*" -Destination "../marble-run-simulator-viewer-build/" -Recurse -Force -Exclude ".git", "src", "lib", ".vscode"
+Copy-Item -Path "./*" -Destination "../marble-run-simulator-viewer-build/" -Recurse -Force -Exclude ".git", "src", "lib", "work", ".vscode"
 
 New-Item "../marble-run-simulator-viewer-build/lib" -ItemType "directory"
 New-Item "../marble-run-simulator-viewer-build/lib/mummu" -ItemType "directory"
@@ -29,6 +33,8 @@ Get-ChildItem -Path "../marble-run-simulator-viewer-build/" "*.log" -Recurse | F
 Get-ChildItem -Path "../marble-run-simulator-viewer-build/" "*.xcf" -Recurse | ForEach-Object { Remove-Item -Path $_.FullName }
 Get-ChildItem -Path "../marble-run-simulator-viewer-build/" "*.d.ts" -Recurse | ForEach-Object { Remove-Item -Path $_.FullName }
 Get-ChildItem -Path "../marble-run-simulator-viewer-build/" "*.pdn" -Recurse | ForEach-Object { Remove-Item -Path $_.FullName }
+Get-ChildItem -Path "../marble-run-simulator-viewer-build/" "*.kra" -Recurse | ForEach-Object { Remove-Item -Path $_.FullName }
+Get-ChildItem -Path "../marble-run-simulator-viewer-build/" "*.*~" -Recurse | ForEach-Object { Remove-Item -Path $_.FullName }
 
 Remove-Item -Path "../marble-run-simulator-viewer-build/.gitignore"
 Remove-Item -Path "../marble-run-simulator-viewer-build/init_repo.bat"

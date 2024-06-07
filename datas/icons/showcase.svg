@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="800px"
+   height="800px"
+   viewBox="0 0 20 20"
+   version="1.1"
+   id="svg1470"
+   sodipodi:docname="showcase.svg"
+   inkscape:version="1.0.1 (3bc2e813f5, 2020-09-07)">
+  <metadata
+     id="metadata1474">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title>showcase_round [#726]</dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="2560"
+     inkscape:window-height="1377"
+     id="namedview1472"
+     showgrid="false"
+     inkscape:pagecheckerboard="true"
+     inkscape:zoom="1.26"
+     inkscape:cx="400"
+     inkscape:cy="423.25986"
+     inkscape:window-x="1912"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg1470" />
+  <title
+     id="title1460">showcase_round [#726]</title>
+  <desc
+     id="desc1462">Created with Sketch.</desc>
+  <defs
+     id="defs1464" />
+  <g
+     id="Page-1"
+     stroke="none"
+     stroke-width="1.10284"
+     fill="none"
+     fill-rule="evenodd"
+     transform="matrix(0.90674603,0,0,0.90674603,0.93253968,0.93253968)"
+     style="stroke:none;stroke-opacity:1;fill:#fefefe;fill-opacity:1">
+    <g
+       id="Dribbble-Light-Preview"
+       transform="translate(-140,-4999)"
+       fill="#000000"
+       style="stroke-width:1.21627;stroke:none;stroke-opacity:1;fill:#fefefe;fill-opacity:1">
+      <g
+         id="icons"
+         transform="translate(56,160)"
+         style="stroke-width:1.10284;stroke:none;stroke-opacity:1;fill:#fefefe;fill-opacity:1">
+        <path
+           d="m 102,4850 c 0,0.552 -0.448,1 -1,1 h -6 -2 -6 c -0.552,0 -1,-0.448 -1,-1 v -6 c 0,-0.552 0.448,-1 1,-1 h 14 c 0.552,0 1,0.448 1,1 z m 0,-9 h -7 v -1 c 0,-0.552 -0.448,-1 -1,-1 -0.552,0 -1,0.448 -1,1 v 1 h -7 c -1.105,0 -2,0.895 -2,2 v 8 c 0,1.105 0.895,2 2,2 h 4.793 l -2.135,4.581 c -0.308,0.662 0.175,1.419 0.904,1.419 h 0.001 c 0.387,0 0.739,-0.224 0.903,-0.575 L 93,4853 v 5.003 c 0,0.55 0.447,0.997 0.997,0.997 h 0.006 c 0.55,0 0.997,-0.447 0.997,-0.997 V 4853 l 2.534,5.425 c 0.164,0.351 0.516,0.575 0.903,0.575 v 0 c 0.73,0 1.213,-0.757 0.905,-1.419 L 97.207,4853 H 102 c 1.105,0 2,-0.895 2,-2 v -8 c 0,-1.105 -0.895,-2 -2,-2 z"
+           id="showcase_round-[#726]"
+           style="stroke-width:1.10284;stroke:none;stroke-opacity:1;fill:#fefefe;fill-opacity:1" />
+      </g>
+    </g>
+  </g>
+</svg>

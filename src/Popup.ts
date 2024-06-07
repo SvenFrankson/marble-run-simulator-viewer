@@ -10,6 +10,7 @@ class Popup extends HTMLElement {
     private _duration: number = 0;
     private _updateInterval: number;
     private _animateOpacityInterval: number;
+    private _waitToHideAfterShowTimeout: number;
 
     public connectedCallback() {
         this.initialize();
@@ -35,14 +36,14 @@ class Popup extends HTMLElement {
         this.style.opacity = "0";
         this.style.display = "none";
         this.style.position = "fixed";
-        this.style.zIndex = "10";
+        this.style.zIndex = "2";
     }
 
     public async show(duration: number = 1): Promise<void> {
+        clearInterval(this._animateOpacityInterval);
+        clearTimeout(this._waitToHideAfterShowTimeout);
         return new Promise<void>(resolve => {
             if (!this._shown) {
-                clearInterval(this._animateOpacityInterval);
-    
                 this._shown = true;
                 this.style.display = "block";
                 let opacity0 = parseFloat(this.style.opacity);
@@ -53,7 +54,8 @@ class Popup extends HTMLElement {
                         clearInterval(this._animateOpacityInterval);
                         this.style.opacity = "1";
                         if (this._duration > 0) {
-                            setTimeout(() => {
+                            console.log("!!!");
+                            this._waitToHideAfterShowTimeout = setTimeout(() => {
                                 this.hide(duration).then(resolve);
                             }, this._duration * 1000);
                         }
@@ -71,10 +73,10 @@ class Popup extends HTMLElement {
     }
 
     public async hide(duration: number = 1): Promise<void> {
+        clearInterval(this._animateOpacityInterval);
+        clearTimeout(this._waitToHideAfterShowTimeout);
         return new Promise<void>(resolve => {
             if (this._shown) {
-                clearInterval(this._animateOpacityInterval);
-
                 this._shown = false;
                 this.style.display = "block";
                 let opacity0 = parseFloat(this.style.opacity);
