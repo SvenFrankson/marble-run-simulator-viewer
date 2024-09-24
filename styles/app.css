@@ -1048,3 +1048,12 @@ soon-menu a:hover {
 soon-menu a:active { 
     color: white;
 }
+
+#music-display {
+    position: fixed;
+    z-index: 3;
+    pointer-events: none;
+    width: 80%;
+    left: 10%;
+    bottom: 100px;
+}

@@ -7,6 +7,9 @@ class SoonView extends HTMLElement implements Nabu.IPage {
     public game: Game;
 
     private _loaded: boolean = false;
+    public get loaded(): boolean {
+        return this._loaded;
+    }
     private _shown: boolean = false;
     public get shown(): boolean {
         return this._shown;
@@ -87,6 +90,8 @@ class SoonView extends HTMLElement implements Nabu.IPage {
         this._options = [
             this._returnBtn
         ]
+
+        this._loaded = true;
     }
 
     public attributeChangedCallback(name: string, oldValue: string, newValue: string) {}
