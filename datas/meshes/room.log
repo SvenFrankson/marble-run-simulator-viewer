@@ -12,47 +12,82 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 		Texture directory   :  C:\Users\svent\Documents\sven-frankson\marble-run-simulator-viewer\datas\meshes\
 	Python World class constructor completed
 	WARNING: No active camera has been assigned, or is not in a currently selected Blender layer
-	processing begun of mesh:  Plane
-		WARNING: No materials have been assigned: 
-		num positions      :  618
-		num normals        :  618
+	processing begun of mesh:  001-floor
+		processing begun of material:  Material
+		processing begun of material:  White
+		processing begun of multimaterial:  room.Multimaterial#0
+		num positions      :  102
+		num normals        :  102
 		num tangents       :  0
-		num uvs            :  1236
+		num uvs            :  204
 		num uvs2           :  0
 		num colors         :  0
-		num triangles      :  584
-	processing begun of mesh:  Circle
-		WARNING: No materials have been assigned: 
-		num positions      :  476
-		num normals        :  476
+		num triangles      :  88
+	processing begun of mesh:  003-walls
+		processing begun of material:  White
+		processing begun of material:  Material
+		registered as also a user of material:  White
+		registered as also a user of material:  Material
+		processing begun of multimaterial:  room.Multimaterial#1
+		num positions      :  104
+		num normals        :  104
 		num tangents       :  0
-		num uvs            :  952
+		num uvs            :  208
 		num uvs2           :  0
 		num colors         :  0
-		num triangles      :  396
-	processing begun of mesh:  Plane.001
-		WARNING: No materials have been assigned: 
-		num positions      :  618
-		num normals        :  618
+		num triangles      :  120
+	processing begun of mesh:  000-floor
+		processing begun of material:  Floor
+		num positions      :  58
+		num normals        :  58
 		num tangents       :  0
-		num uvs            :  1236
+		num uvs            :  116
 		num uvs2           :  0
 		num colors         :  0
-		num triangles      :  584
-	processing begun of mesh:  Circle.001
-		WARNING: No materials have been assigned: 
-		num positions      :  194
-		num normals        :  194
+		num triangles      :  52
+	processing begun of mesh:  004-windows
+		processing begun of material:  Material
+		registered as also a user of material:  Material
+		num positions      :  960
+		num normals        :  960
 		num tangents       :  0
-		num uvs            :  388
+		num uvs            :  1920
 		num uvs2           :  0
 		num colors         :  0
-		num triangles      :  336
+		num triangles      :  768
+	processing begun of mesh:  902-rail
+		processing begun of material:  Material
+		processing begun of material:  White
+		registered as also a user of material:  Material
+		registered as also a user of material:  White
+		processing begun of multimaterial:  room.Multimaterial#2
+		num positions      :  440
+		num normals        :  440
+		num tangents       :  0
+		num uvs            :  880
+		num uvs2           :  0
+		num colors         :  0
+		num triangles      :  380
+	processing begun of mesh:  002-rail
+		processing begun of material:  Material
+		processing begun of material:  White
+		registered as also a user of material:  Material
+		registered as also a user of material:  White
+		processing begun of multimaterial:  room.Multimaterial#3
+		num positions      :  298
+		num normals        :  298
+		num tangents       :  0
+		num uvs            :  596
+		num uvs2           :  0
+		num colors         :  0
+		num triangles      :  252
 ========= Writing of JSON file started =========
-	writing mesh:  Plane
-	writing mesh:  Circle
-	writing mesh:  Plane.001
-	writing mesh:  Circle.001
+	writing mesh:  001-floor
+	writing mesh:  003-walls
+	writing mesh:  000-floor
+	writing mesh:  004-windows
+	writing mesh:  902-rail
+	writing mesh:  002-rail
 ========= Writing of JSON file completed =========
 ========= end of processing =========
-elapsed time:  0 min, 0.2091 secs
+elapsed time:  0 min, 0.1029 secs

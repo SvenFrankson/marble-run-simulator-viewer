@@ -111,6 +111,7 @@ class Game {
     public onFocusCallback: () => void;
 
     public vertexDataLoader: Mummu.VertexDataLoader;
+    public roomMeshes: BABYLON.AbstractMesh[] = [];
 
     public soonView: SoonView;
     public musicDisplay: MusicDisplay;
@@ -125,13 +126,13 @@ class Game {
     }
     public timeFactor: number = 0.1;
     public get currentTimeFactor(): number {
-        return 0.2; 
+        return 0.8; 
     }
     public physicDT: number = 0.0005;
 
     public materials: Core.MainMaterials;
     public machine: Core.Machine;
-    public room: Core.Room;
+    public machines: Core.Machine[] = [];
     public spotLight: BABYLON.SpotLight;
     public shadowGenerator: BABYLON.ShadowGenerator;
 
@@ -147,7 +148,6 @@ class Game {
         if (this.machine) {
             await this.machine.instantiate(true);
         }
-        await this.room.setRoomIndex(this.room.contextualRoomIndex(this.room.currentRoomIndex));
     }
 
     public getGeometryQ(): Core.GeometryQuality {
@@ -175,6 +175,31 @@ class Game {
     public gridJMax: number;
     public gridKMin: number;
     public gridKMax: number;
+
+    public sortedTiles: BABYLON.Mesh[] = [];
+    public tiles: Map<number, Map<number, BABYLON.Mesh>> = new Map<number, Map<number, BABYLON.Mesh>>();
+    public getTile(i: number, j: number): BABYLON.Mesh {
+        if (this.tiles.get(i)) {
+            return this.tiles.get(i).get(j);
+        }
+    }
+
+    public setTile(i: number, j: number, tile: BABYLON.Mesh): void {
+        if (!this.tiles.get(i)) {
+            this.tiles.set(i, new Map<number, BABYLON.Mesh>());
+        }
+        this.tiles.get(i).set(j, tile);
+    }
+
+    public getTileAtPos(x: number, z: number): BABYLON.Mesh {
+        let s = 3;
+        let ss = Math.sqrt(s * s - (s * 0.5) * (s * 0.5));
+        
+        let i = Math.round(x / (1.5 * s));
+        let j = Math.round((z - i * ss) / (2 * ss));
+
+        return this.getTile(i, j);
+    }
 
     constructor(canvasElement: string) {
         Game.Instance = this;
@@ -216,9 +241,45 @@ class Game {
         this.screenRatio = this.engine.getRenderWidth() / this.engine.getRenderHeight();
         this.vertexDataLoader = new Mummu.VertexDataLoader(this.scene);
         
-        BABYLON.SceneLoader.ImportMesh("", "./datas/meshes/room.babylon", undefined, undefined, (meshes) => {
-            
-        });
+        let hexaTileData = await this.vertexDataLoader.getAtIndex("./datas/meshes/hexa-tile.babylon");
+
+        let s = 3;
+        let ss = Math.sqrt(s * s - (s * 0.5) * (s * 0.5));
+        for (let i = -10; i <= 10; i++) {
+            for (let j = -10; j <= 10; j++) {
+                let x = i * 1.5 * s;
+                let z = j * 2 * ss + i * ss;
+                let d = Math.sqrt(x * x + z * z);
+                if (d < 30) {
+                    let tile = new BABYLON.Mesh("tile-zero");
+                    this.setTile(i, j, tile);
+                    this.sortedTiles.push(tile);
+                    tile.position.x = x;
+                    tile.position.y = d / (2 * ss) * 0.3 + 0.2 * Math.random();
+                    tile.position.z = z;
+
+                    let colorizedData = Mummu.CloneVertexData(hexaTileData);
+                    let color = new BABYLON.Color3(
+                        0.8 + 0.2 * Math.random(),
+                        0.8 + 0.2 * Math.random(),
+                        0.8 + 0.2 * Math.random()
+                    );
+                    Mummu.ColorizeVertexDataInPlace(colorizedData, color);
+                    colorizedData.applyToMesh(tile);
+                }
+            }
+        }
+
+        this.sortedTiles.sort((t1, t2) => {
+            let d1 = t1.position.multiplyByFloats(1, 0, 1).length();
+            let d2 = t2.position.multiplyByFloats(1, 0, 1).length();
+            if (d1 === d2) {
+                let a1 = Mummu.AngleFromToAround(BABYLON.Axis.Z, t1.position, BABYLON.Axis.Y);
+                let a2 = Mummu.AngleFromToAround(BABYLON.Axis.Z, t2.position, BABYLON.Axis.Y);
+                return a1 - a2;
+            }
+            return d1 - d2;
+        })
 
         this.materials = new Core.MainMaterials(this);
 
@@ -227,22 +288,42 @@ class Game {
         this.spotLight.shadowMaxZ = 3;
         this.spotLight.intensity = 0;
 
-        let ambientLight = new BABYLON.HemisphericLight("ambient-light", (new BABYLON.Vector3(1, 3, 2)).normalize(), this.scene);
+        let ambientLight = new BABYLON.HemisphericLight("ambient-light", new BABYLON.Vector3(0, 1, 0), this.scene);
+        ambientLight.intensity = 0.7;
+        ambientLight.groundColor.copyFromFloats(0, 0, 0);
+
+        let skybox = BABYLON.MeshBuilder.CreateSphere("room-skybox", { diameter: 1000, sideOrientation: BABYLON.Mesh.BACKSIDE, segments: 4 }, this.scene);
+        let skyboxMaterial = new BABYLON.StandardMaterial("room-skybox-material", this.scene);
+        skyboxMaterial.backFaceCulling = false;
+        skyboxMaterial.diffuseColor.copyFromFloats(0, 0, 0);
+        skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
+        let skyTexture = new BABYLON.Texture("./lib/marble-run-simulator-core/datas/skyboxes/sky.jpeg");
+        skyboxMaterial.diffuseTexture = skyTexture;
+        skyboxMaterial.emissiveTexture = skyTexture;
+        skybox.material = skyboxMaterial;
+        skybox.rotation.y = 0.16 * Math.PI;
 
         this.camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 1.6, -2));
         this.camera.minZ = 0.1;
-        this.camera.speed = 0.5;
+        this.camera.speed = 0.2;
 
         this.updateShadowGenerator();
 
         this.camera.attachControl();
         this.camera.getScene();
-
-        this.room = new Core.Room(this);
         
         this.machine = new Core.Machine(this);
-        this.machine.root.position.y = 1.1;
+        this.machine.root.position.copyFrom(this.sortedTiles[0].position).addInPlaceFromFloats(0, 0.7, 0);
         this.machine.root.computeWorldMatrix(true);
+        
+        this.machines[0] = this.machine;
+        for (let i = 1; i <= 11; i++) {
+            let machine = new Core.Machine(this);
+            machine.root.position.copyFrom(this.sortedTiles[i].position).addInPlaceFromFloats(0, 0.7, 0);
+            machine.root.computeWorldMatrix(true);
+            this.machines.push(machine);
+        }
+
         let waitForMachineReady = () => {
             if (this.machine && this.machine.ready) {
                 
@@ -270,6 +351,20 @@ class Game {
             this.machine.play();
         });
 
+        for (let i = 1; i <= 11; i++) {
+            let machine = this.machines[i];
+
+            let dataResponse = await fetch("./datas/demos/demo-" + i.toFixed(0) + ".json");
+            if (dataResponse) {
+                let data = await dataResponse.json() as Core.IMachineData;
+                machine.deserialize(data);
+                machine.generateBaseMesh();
+                machine.instantiate().then(() => {
+                    machine.play();
+                });
+            }
+        }
+
         this.mode = GameMode.Home;
 
         this.soonView = document.getElementsByTagName("soon-menu")[0] as SoonView;
@@ -286,13 +381,6 @@ class Game {
                 }
             })
         })
-
-        if (this.getGraphicQ() === 0) {
-            this.room.setRoomIndex(1, true);
-        }
-        else {
-            this.room.setRoomIndex(0, true);
-        }
 	}
 
 	public animate(): void {
@@ -327,6 +415,13 @@ class Game {
             this.factoredTimeSinceGameStart += timeFactoredDT;
         }
 
+        if (isFinite(rawDT)) {
+            let tile = this.getTileAtPos(this.camera.position.x, this.camera.position.z);
+            if (tile) {
+                this.camera.position.y = this.camera.position.y * 0.9 + (tile.position.y + 1) * 0.1;
+            }
+        }
+
         if (this.DEBUG_MODE) {
             let camPos = this.camera.position;
             let camTarget = this.camera.target;
@@ -343,9 +438,9 @@ class Game {
         window.localStorage.setItem("saved-main-volume", this.mainVolume.toFixed(2));
         window.localStorage.setItem("saved-time-factor", this.targetTimeFactor.toFixed(2));
 
-        if (this.machine) {
-            this.machine.update();
-        }
+        this.machines.forEach(machine => {
+            machine.update();
+        })
     }
 
     public machineEditorContainerIsDisplayed: boolean = false;
