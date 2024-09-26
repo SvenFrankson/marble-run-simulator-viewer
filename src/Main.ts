@@ -176,27 +176,24 @@ class Game {
     public gridKMin: number;
     public gridKMax: number;
 
-    public sortedTiles: BABYLON.Mesh[] = [];
-    public tiles: Map<number, Map<number, BABYLON.Mesh>> = new Map<number, Map<number, BABYLON.Mesh>>();
-    public getTile(i: number, j: number): BABYLON.Mesh {
+    public sortedTiles: Tile[] = [];
+    public tiles: Map<number, Map<number, Tile>> = new Map<number, Map<number, Tile>>();
+    public getTile(i: number, j: number): Tile {
         if (this.tiles.get(i)) {
             return this.tiles.get(i).get(j);
         }
     }
 
-    public setTile(i: number, j: number, tile: BABYLON.Mesh): void {
+    public setTile(i: number, j: number, tile: Tile): void {
         if (!this.tiles.get(i)) {
-            this.tiles.set(i, new Map<number, BABYLON.Mesh>());
+            this.tiles.set(i, new Map<number, Tile>());
         }
         this.tiles.get(i).set(j, tile);
     }
 
-    public getTileAtPos(x: number, z: number): BABYLON.Mesh {
-        let s = 3;
-        let ss = Math.sqrt(s * s - (s * 0.5) * (s * 0.5));
-        
-        let i = Math.round(x / (1.5 * s));
-        let j = Math.round((z - i * ss) / (2 * ss));
+    public getTileAtPos(x: number, z: number): Tile {
+        let i = Math.round(x / (1.5 * Tile.SIZE));
+        let j = Math.round((z - i * Tile.S_SIZE) / (2 * Tile.S_SIZE));
 
         return this.getTile(i, j);
     }
@@ -243,20 +240,16 @@ class Game {
         
         let hexaTileData = await this.vertexDataLoader.getAtIndex("./datas/meshes/hexa-tile.babylon");
 
-        let s = 3;
-        let ss = Math.sqrt(s * s - (s * 0.5) * (s * 0.5));
+        
         for (let i = -10; i <= 10; i++) {
             for (let j = -10; j <= 10; j++) {
-                let x = i * 1.5 * s;
-                let z = j * 2 * ss + i * ss;
+                let x = i * 1.5 * Tile.SIZE;
+                let z = j * 2 * Tile.S_SIZE + i * Tile.S_SIZE;
                 let d = Math.sqrt(x * x + z * z);
                 if (d < 30) {
-                    let tile = new BABYLON.Mesh("tile-zero");
+                    let tile = new Tile(i, j, this);
                     this.setTile(i, j, tile);
                     this.sortedTiles.push(tile);
-                    tile.position.x = x;
-                    tile.position.y = d / (2 * ss) * 0.3 + 0.2 * Math.random();
-                    tile.position.z = z;
 
                     let colorizedData = Mummu.CloneVertexData(hexaTileData);
                     let color = new BABYLON.Color3(
@@ -271,14 +264,10 @@ class Game {
         }
 
         this.sortedTiles.sort((t1, t2) => {
-            let d1 = t1.position.multiplyByFloats(1, 0, 1).length();
-            let d2 = t2.position.multiplyByFloats(1, 0, 1).length();
-            if (d1 === d2) {
-                let a1 = Mummu.AngleFromToAround(BABYLON.Axis.Z, t1.position, BABYLON.Axis.Y);
-                let a2 = Mummu.AngleFromToAround(BABYLON.Axis.Z, t2.position, BABYLON.Axis.Y);
-                return a1 - a2;
+            if (t1.d === t2.d) {
+                return t1.a - t2.a;
             }
-            return d1 - d2;
+            return t1.d - t2.d;
         })
 
         this.materials = new Core.MainMaterials(this);
@@ -317,7 +306,7 @@ class Game {
         this.machine.root.computeWorldMatrix(true);
         
         this.machines[0] = this.machine;
-        for (let i = 1; i <= 11; i++) {
+        for (let i = 1; i <= 2; i++) {
             let machine = new Core.Machine(this);
             machine.root.position.copyFrom(this.sortedTiles[i].position).addInPlaceFromFloats(0, 0.7, 0);
             machine.root.computeWorldMatrix(true);
@@ -351,7 +340,7 @@ class Game {
             this.machine.play();
         });
 
-        for (let i = 1; i <= 11; i++) {
+        for (let i = 1; i <= 2; i++) {
             let machine = this.machines[i];
 
             let dataResponse = await fetch("./datas/demos/demo-" + i.toFixed(0) + ".json");
@@ -419,6 +408,7 @@ class Game {
             let tile = this.getTileAtPos(this.camera.position.x, this.camera.position.z);
             if (tile) {
                 this.camera.position.y = this.camera.position.y * 0.9 + (tile.position.y + 1) * 0.1;
+                console.log(tile.a.toFixed(3));
             }
         }
 

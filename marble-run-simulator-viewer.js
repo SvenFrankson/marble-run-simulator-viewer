@@ -387,10 +387,8 @@ class Game {
         this.tiles.get(i).set(j, tile);
     }
     getTileAtPos(x, z) {
-        let s = 3;
-        let ss = Math.sqrt(s * s - (s * 0.5) * (s * 0.5));
-        let i = Math.round(x / (1.5 * s));
-        let j = Math.round((z - i * ss) / (2 * ss));
+        let i = Math.round(x / (1.5 * Tile.SIZE));
+        let j = Math.round((z - i * Tile.S_SIZE) / (2 * Tile.S_SIZE));
         return this.getTile(i, j);
     }
     async createScene() {
@@ -398,20 +396,15 @@ class Game {
         this.screenRatio = this.engine.getRenderWidth() / this.engine.getRenderHeight();
         this.vertexDataLoader = new Mummu.VertexDataLoader(this.scene);
         let hexaTileData = await this.vertexDataLoader.getAtIndex("./datas/meshes/hexa-tile.babylon");
-        let s = 3;
-        let ss = Math.sqrt(s * s - (s * 0.5) * (s * 0.5));
         for (let i = -10; i <= 10; i++) {
             for (let j = -10; j <= 10; j++) {
-                let x = i * 1.5 * s;
-                let z = j * 2 * ss + i * ss;
+                let x = i * 1.5 * Tile.SIZE;
+                let z = j * 2 * Tile.S_SIZE + i * Tile.S_SIZE;
                 let d = Math.sqrt(x * x + z * z);
                 if (d < 30) {
-                    let tile = new BABYLON.Mesh("tile-zero");
+                    let tile = new Tile(i, j, this);
                     this.setTile(i, j, tile);
                     this.sortedTiles.push(tile);
-                    tile.position.x = x;
-                    tile.position.y = d / (2 * ss) * 0.3 + 0.2 * Math.random();
-                    tile.position.z = z;
                     let colorizedData = Mummu.CloneVertexData(hexaTileData);
                     let color = new BABYLON.Color3(0.8 + 0.2 * Math.random(), 0.8 + 0.2 * Math.random(), 0.8 + 0.2 * Math.random());
                     Mummu.ColorizeVertexDataInPlace(colorizedData, color);
@@ -420,14 +413,10 @@ class Game {
             }
         }
         this.sortedTiles.sort((t1, t2) => {
-            let d1 = t1.position.multiplyByFloats(1, 0, 1).length();
-            let d2 = t2.position.multiplyByFloats(1, 0, 1).length();
-            if (d1 === d2) {
-                let a1 = Mummu.AngleFromToAround(BABYLON.Axis.Z, t1.position, BABYLON.Axis.Y);
-                let a2 = Mummu.AngleFromToAround(BABYLON.Axis.Z, t2.position, BABYLON.Axis.Y);
-                return a1 - a2;
+            if (t1.d === t2.d) {
+                return t1.a - t2.a;
             }
-            return d1 - d2;
+            return t1.d - t2.d;
         });
         this.materials = new Core.MainMaterials(this);
         this.spotLight = new BABYLON.SpotLight("spot-light", new BABYLON.Vector3(0, 0.5, 0), new BABYLON.Vector3(0, -1, 0), Math.PI / 3, 1, this.scene);
@@ -457,7 +446,7 @@ class Game {
         this.machine.root.position.copyFrom(this.sortedTiles[0].position).addInPlaceFromFloats(0, 0.7, 0);
         this.machine.root.computeWorldMatrix(true);
         this.machines[0] = this.machine;
-        for (let i = 1; i <= 11; i++) {
+        for (let i = 1; i <= 2; i++) {
             let machine = new Core.Machine(this);
             machine.root.position.copyFrom(this.sortedTiles[i].position).addInPlaceFromFloats(0, 0.7, 0);
             machine.root.computeWorldMatrix(true);
@@ -487,7 +476,7 @@ class Game {
         this.machine.instantiate().then(() => {
             this.machine.play();
         });
-        for (let i = 1; i <= 11; i++) {
+        for (let i = 1; i <= 2; i++) {
             let machine = this.machines[i];
             let dataResponse = await fetch("./datas/demos/demo-" + i.toFixed(0) + ".json");
             if (dataResponse) {
@@ -542,6 +531,7 @@ class Game {
             let tile = this.getTileAtPos(this.camera.position.x, this.camera.position.z);
             if (tile) {
                 this.camera.position.y = this.camera.position.y * 0.9 + (tile.position.y + 1) * 0.1;
+                console.log(tile.a.toFixed(3));
             }
         }
         if (this.DEBUG_MODE) {
@@ -699,6 +689,35 @@ class Popup extends HTMLElement {
     }
 }
 customElements.define("nabu-popup", Popup);
+var TileStatus;
+(function (TileStatus) {
+    TileStatus[TileStatus["Active"] = 0] = "Active";
+    TileStatus[TileStatus["Next"] = 1] = "Next";
+    TileStatus[TileStatus["Inactive"] = 2] = "Inactive";
+    TileStatus[TileStatus["Minimal"] = 3] = "Minimal";
+})(TileStatus || (TileStatus = {}));
+class Tile extends BABYLON.Mesh {
+    constructor(i, j, game) {
+        super("tile-" + i.toFixed(0) + "_" + j.toFixed(0));
+        this.i = i;
+        this.j = j;
+        this.game = game;
+        this.d = 0;
+        this.a = 0;
+        let x = i * 1.5 * Tile.SIZE;
+        let z = j * 2 * Tile.S_SIZE + i * Tile.S_SIZE;
+        this.position.x = x;
+        this.position.z = z;
+        this.d = Math.sqrt(x * x + z * z);
+        this.a = Mummu.AngleFromToAround(BABYLON.Axis.Z, this.position, BABYLON.Axis.Y);
+        while (this.a < 0) {
+            this.a += 2 * Math.PI;
+        }
+        this.position.y = (this.d / (2 * Tile.S_SIZE) + this.a / (2 * Math.PI)) * 0.3;
+    }
+}
+Tile.SIZE = 3;
+Tile.S_SIZE = Math.sqrt(Tile.SIZE * Tile.SIZE - (Tile.SIZE * 0.5) * (Tile.SIZE * 0.5));
 class MusicDisplay {
     constructor(canvas, game) {
         this.canvas = canvas;
