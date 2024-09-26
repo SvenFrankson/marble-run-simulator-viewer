@@ -300,7 +300,6 @@ class Game {
         this._targetTimeFactor = 0.8;
         this.timeFactor = 0.1;
         this.physicDT = 0.0005;
-        this.machines = [];
         this._graphicQ = Core.GraphicQuality.High;
         this.sortedTiles = [];
         this.tiles = new Map();
@@ -347,6 +346,12 @@ class Game {
     }
     get currentTimeFactor() {
         return 0.8;
+    }
+    get machine() {
+        let tile = this.getTile(0, 0);
+        if (tile) {
+            return tile.machine;
+        }
     }
     getGraphicQ() {
         return this._graphicQ;
@@ -395,29 +400,6 @@ class Game {
         this.scene = new BABYLON.Scene(this.engine);
         this.screenRatio = this.engine.getRenderWidth() / this.engine.getRenderHeight();
         this.vertexDataLoader = new Mummu.VertexDataLoader(this.scene);
-        let hexaTileData = await this.vertexDataLoader.getAtIndex("./datas/meshes/hexa-tile.babylon");
-        for (let i = -10; i <= 10; i++) {
-            for (let j = -10; j <= 10; j++) {
-                let x = i * 1.5 * Tile.SIZE;
-                let z = j * 2 * Tile.S_SIZE + i * Tile.S_SIZE;
-                let d = Math.sqrt(x * x + z * z);
-                if (d < 30) {
-                    let tile = new Tile(i, j, this);
-                    this.setTile(i, j, tile);
-                    this.sortedTiles.push(tile);
-                    let colorizedData = Mummu.CloneVertexData(hexaTileData);
-                    let color = new BABYLON.Color3(0.8 + 0.2 * Math.random(), 0.8 + 0.2 * Math.random(), 0.8 + 0.2 * Math.random());
-                    Mummu.ColorizeVertexDataInPlace(colorizedData, color);
-                    colorizedData.applyToMesh(tile);
-                }
-            }
-        }
-        this.sortedTiles.sort((t1, t2) => {
-            if (t1.d === t2.d) {
-                return t1.a - t2.a;
-            }
-            return t1.d - t2.d;
-        });
         this.materials = new Core.MainMaterials(this);
         this.spotLight = new BABYLON.SpotLight("spot-light", new BABYLON.Vector3(0, 0.5, 0), new BABYLON.Vector3(0, -1, 0), Math.PI / 3, 1, this.scene);
         this.spotLight.shadowMinZ = 1;
@@ -438,20 +420,10 @@ class Game {
         skybox.rotation.y = 0.16 * Math.PI;
         this.camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 1.6, -2));
         this.camera.minZ = 0.1;
-        this.camera.speed = 0.2;
+        this.camera.speed = 0.05;
         this.updateShadowGenerator();
         this.camera.attachControl();
         this.camera.getScene();
-        this.machine = new Core.Machine(this);
-        this.machine.root.position.copyFrom(this.sortedTiles[0].position).addInPlaceFromFloats(0, 0.7, 0);
-        this.machine.root.computeWorldMatrix(true);
-        this.machines[0] = this.machine;
-        for (let i = 1; i <= 2; i++) {
-            let machine = new Core.Machine(this);
-            machine.root.position.copyFrom(this.sortedTiles[i].position).addInPlaceFromFloats(0, 0.7, 0);
-            machine.root.computeWorldMatrix(true);
-            this.machines.push(machine);
-        }
         let waitForMachineReady = () => {
             if (this.machine && this.machine.ready) {
             }
@@ -471,37 +443,63 @@ class Game {
             }
         };
         waitForMachineInstantiated();
-        this.machine.deserialize(fallbackMachine);
-        this.machine.generateBaseMesh();
-        this.machine.instantiate().then(() => {
-            this.machine.play();
-        });
-        for (let i = 1; i <= 2; i++) {
-            let machine = this.machines[i];
-            let dataResponse = await fetch("./datas/demos/demo-" + i.toFixed(0) + ".json");
-            if (dataResponse) {
-                let data = await dataResponse.json();
-                machine.deserialize(data);
-                machine.generateBaseMesh();
-                machine.instantiate().then(() => {
-                    machine.play();
-                });
+        this.tileManager = new TileManager();
+        for (let i = -10; i <= 10; i++) {
+            for (let j = -10; j <= 10; j++) {
+                let x = i * 1.5 * Tile.SIZE;
+                let z = j * 2 * Tile.S_SIZE + i * Tile.S_SIZE;
+                let d = Math.sqrt(x * x + z * z);
+                if (d < 30) {
+                    let tile = new Tile(i, j, this);
+                    this.setTile(i, j, tile);
+                    this.sortedTiles.push(tile);
+                    await tile.instantiate();
+                }
             }
+        }
+        this.sortedTiles.sort((t1, t2) => {
+            if (t1.d === t2.d) {
+                return t1.a - t2.a;
+            }
+            return t1.d - t2.d;
+        });
+        this.sortedTiles[0].deserialize = async () => {
+            this.sortedTiles[0].machine.deserialize(fallbackMachine);
+        };
+        for (let i = 1; i <= 11; i++) {
+            let I = i;
+            this.sortedTiles[i].deserialize = async () => {
+                let dataResponse = await fetch("./datas/demos/demo-" + I.toFixed(0) + ".json");
+                if (dataResponse) {
+                    let data = await dataResponse.json();
+                    this.sortedTiles[i].machine.deserialize(data);
+                }
+            };
+        }
+        let indexes = [
+            1019147075,
+            1037419437,
+            1045213988,
+            1061888119,
+            1065551463,
+            1084538378,
+            1098216871
+        ];
+        for (let i = 0; i < indexes.length; i++) {
+            let I = i;
+            this.sortedTiles[I + 12].deserialize = async () => {
+                let dataResponse = await fetch(SHARE_SERVICE_PATH + "machine/" + indexes[I].toFixed(0));
+                if (dataResponse) {
+                    let data = await dataResponse.json();
+                    this.sortedTiles[I + 12].machine.deserialize(data);
+                }
+            };
         }
         this.mode = GameMode.Home;
         this.soonView = document.getElementsByTagName("soon-menu")[0];
         this.soonView.setGame(this);
         this.musicDisplay = new MusicDisplay(document.getElementById("music-display"), this);
         this.musicDisplay.reset();
-        this.machine.onPlayCallbacks.push(() => {
-            this.musicDisplay.reset();
-            let xylophones = this.machine.decors.filter(decor => { return decor instanceof Core.Xylophone; });
-            xylophones.forEach(xylophone => {
-                xylophone.onSoundPlay = () => {
-                    this.musicDisplay.drawNote(xylophone);
-                };
-            });
-        });
     }
     animate() {
         this.engine.runRenderLoop(() => {
@@ -531,25 +529,15 @@ class Game {
             let tile = this.getTileAtPos(this.camera.position.x, this.camera.position.z);
             if (tile) {
                 this.camera.position.y = this.camera.position.y * 0.9 + (tile.position.y + 1) * 0.1;
-                console.log(tile.a.toFixed(3));
+                this.tileManager.setCurrentActiveTile(tile);
+                if (tile.machine && tile.machine.ready && tile.machine.instantiated) {
+                    tile.machine.update();
+                }
             }
-        }
-        if (this.DEBUG_MODE) {
-            let camPos = this.camera.position;
-            let camTarget = this.camera.target;
-            window.localStorage.setItem("camera-position", JSON.stringify({ x: camPos.x, y: camPos.y, z: camPos.z }));
-            window.localStorage.setItem("camera-target", JSON.stringify({ x: camTarget.x, y: camTarget.y, z: camTarget.z }));
-        }
-        if (!this.DEBUG_MODE) {
-            this.camera.target.x = Nabu.MinMax(this.camera.target.x, this.machine.baseMeshMinX, this.machine.baseMeshMaxX);
-            this.camera.target.y = Nabu.MinMax(this.camera.target.y, this.machine.baseMeshMinY, this.machine.baseMeshMaxY);
-            this.camera.target.z = Nabu.MinMax(this.camera.target.z, this.machine.baseMeshMinZ, this.machine.baseMeshMaxZ);
         }
         window.localStorage.setItem("saved-main-volume", this.mainVolume.toFixed(2));
         window.localStorage.setItem("saved-time-factor", this.targetTimeFactor.toFixed(2));
-        this.machines.forEach(machine => {
-            machine.update();
-        });
+        this.tileManager.update();
     }
     resizeCanvas() {
         this.canvas.style.width = "100%";
@@ -694,8 +682,153 @@ var TileStatus;
     TileStatus[TileStatus["Active"] = 0] = "Active";
     TileStatus[TileStatus["Next"] = 1] = "Next";
     TileStatus[TileStatus["Inactive"] = 2] = "Inactive";
-    TileStatus[TileStatus["Minimal"] = 3] = "Minimal";
+    TileStatus[TileStatus["Proxy"] = 3] = "Proxy";
 })(TileStatus || (TileStatus = {}));
+class TileManager {
+    constructor() {
+        this.setActiveTasks = new Nabu.UniqueList();
+        this.setNextTasks = new Nabu.UniqueList();
+        this.setInactiveTasks = new Nabu.UniqueList();
+        this.setProxyTasks = new Nabu.UniqueList();
+    }
+    async taskStatusActive(tile) {
+        if (!tile.deserialize) {
+            return;
+        }
+        if (!tile.machine) {
+            tile.machine = new Core.Machine(tile.game);
+            tile.machine.root.position.copyFrom(tile.position).addInPlaceFromFloats(0, 0.7, 0);
+            tile.machine.root.computeWorldMatrix(true);
+        }
+        if (tile.machine.parts.length === 0) {
+            await tile.deserialize();
+        }
+        if (!tile.machine.ready) {
+            tile.machine.generateBaseMesh();
+        }
+        tile.machine.graphicQ = Core.GraphicQuality.High;
+        await tile.machine.instantiate();
+        tile.machine.reset();
+        tile.machine.play();
+        tile.status = TileStatus.Active;
+    }
+    async taskStatusNext(tile) {
+        if (!tile.deserialize) {
+            return;
+        }
+        if (!tile.machine) {
+            tile.machine = new Core.Machine(tile.game);
+            tile.machine.root.position.copyFrom(tile.position).addInPlaceFromFloats(0, 0.7, 0);
+            tile.machine.root.computeWorldMatrix(true);
+        }
+        if (tile.machine.parts.length === 0) {
+            await tile.deserialize();
+        }
+        if (!tile.machine.ready) {
+            tile.machine.generateBaseMesh();
+        }
+        tile.machine.graphicQ = Core.GraphicQuality.VeryLow;
+        await tile.machine.instantiate();
+        tile.status = TileStatus.Next;
+    }
+    async taskStatusInactive(tile) {
+        if (!tile.deserialize) {
+            return;
+        }
+        if (!tile.machine) {
+            tile.machine = new Core.Machine(tile.game);
+            tile.machine.root.position.copyFrom(tile.position).addInPlaceFromFloats(0, 0.7, 0);
+            tile.machine.root.computeWorldMatrix(true);
+        }
+        if (tile.machine.parts.length === 0) {
+            await tile.deserialize();
+        }
+        if (!tile.machine.ready) {
+            tile.machine.generateBaseMesh();
+        }
+        tile.machine.dispose();
+        tile.status = TileStatus.Inactive;
+    }
+    async taskStatusProxy(tile) {
+        if (!tile.deserialize) {
+            return;
+        }
+        tile.status = TileStatus.Proxy;
+    }
+    setCurrentActiveTile(tile) {
+        if (tile === this._currentActiveTile) {
+            return;
+        }
+        this._currentActiveTile = tile;
+        let i = tile.i;
+        let j = tile.j;
+        this.addTask(tile, TileStatus.Active);
+        this.addTask(tile.game.getTile(i + 1, j + 0), TileStatus.Next);
+        this.addTask(tile.game.getTile(i + 0, j + 1), TileStatus.Next);
+        this.addTask(tile.game.getTile(i - 1, j + 0), TileStatus.Next);
+        this.addTask(tile.game.getTile(i + 0, j - 1), TileStatus.Next);
+        this.addTask(tile.game.getTile(i + 1, j - 1), TileStatus.Next);
+        this.addTask(tile.game.getTile(i - 1, j + 1), TileStatus.Next);
+        this.addTask(tile.game.getTile(i + 0, j + 2), TileStatus.Inactive);
+        this.addTask(tile.game.getTile(i + 1, j + 1), TileStatus.Inactive);
+        this.addTask(tile.game.getTile(i + 2, j + 0), TileStatus.Inactive);
+        this.addTask(tile.game.getTile(i + 2, j - 1), TileStatus.Inactive);
+        this.addTask(tile.game.getTile(i + 2, j - 2), TileStatus.Inactive);
+        this.addTask(tile.game.getTile(i + 1, j - 2), TileStatus.Inactive);
+        this.addTask(tile.game.getTile(i + 0, j - 2), TileStatus.Inactive);
+        this.addTask(tile.game.getTile(i - 1, j - 1), TileStatus.Inactive);
+        this.addTask(tile.game.getTile(i - 2, j + 0), TileStatus.Inactive);
+        this.addTask(tile.game.getTile(i - 2, j + 1), TileStatus.Inactive);
+        this.addTask(tile.game.getTile(i - 2, j + 2), TileStatus.Inactive);
+        this.addTask(tile.game.getTile(i - 1, j + 2), TileStatus.Inactive);
+    }
+    update() {
+        if (this.busy) {
+            return;
+        }
+        if (this.setActiveTasks.length > 0) {
+            this.busy = true;
+            this.taskStatusActive(this.setActiveTasks.removeAt(0)).then(() => { this.busy = false; });
+            return;
+        }
+        if (this.setNextTasks.length > 0) {
+            this.busy = true;
+            this.taskStatusNext(this.setNextTasks.removeAt(0)).then(() => { this.busy = false; });
+            return;
+        }
+        if (this.setInactiveTasks.length > 0) {
+            this.busy = true;
+            this.taskStatusInactive(this.setInactiveTasks.removeAt(0)).then(() => { this.busy = false; });
+            return;
+        }
+        if (this.setProxyTasks.length > 0) {
+            this.busy = true;
+            this.taskStatusProxy(this.setProxyTasks.removeAt(0)).then(() => { this.busy = false; });
+            return;
+        }
+    }
+    addTask(tile, status) {
+        if (!tile) {
+            return;
+        }
+        this.setActiveTasks.remove(tile);
+        this.setNextTasks.remove(tile);
+        this.setInactiveTasks.remove(tile);
+        this.setProxyTasks.remove(tile);
+        if (status === TileStatus.Active) {
+            this.setActiveTasks.push(tile);
+        }
+        if (status === TileStatus.Next) {
+            this.setNextTasks.push(tile);
+        }
+        if (status === TileStatus.Inactive) {
+            this.setInactiveTasks.push(tile);
+        }
+        if (status === TileStatus.Proxy) {
+            this.setProxyTasks.push(tile);
+        }
+    }
+}
 class Tile extends BABYLON.Mesh {
     constructor(i, j, game) {
         super("tile-" + i.toFixed(0) + "_" + j.toFixed(0));
@@ -714,6 +847,13 @@ class Tile extends BABYLON.Mesh {
             this.a += 2 * Math.PI;
         }
         this.position.y = (this.d / (2 * Tile.S_SIZE) + this.a / (2 * Math.PI)) * 0.3;
+    }
+    async instantiate() {
+        let hexaTileData = await this.game.vertexDataLoader.getAtIndex("./datas/meshes/hexa-tile.babylon");
+        let colorizedData = Mummu.CloneVertexData(hexaTileData);
+        let color = new BABYLON.Color3(0.8 + 0.2 * Math.random(), 0.8 + 0.2 * Math.random(), 0.8 + 0.2 * Math.random());
+        Mummu.ColorizeVertexDataInPlace(colorizedData, color);
+        colorizedData.applyToMesh(this);
     }
 }
 Tile.SIZE = 3;

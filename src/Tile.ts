@@ -2,7 +2,183 @@ enum TileStatus {
     Active,
     Next,
     Inactive,
-    Minimal
+    Proxy
+}
+
+class TileManager {
+
+    public setActiveTasks: Nabu.UniqueList<Tile> = new Nabu.UniqueList<Tile>();
+    public setNextTasks: Nabu.UniqueList<Tile> = new Nabu.UniqueList<Tile>();
+    public setInactiveTasks: Nabu.UniqueList<Tile> = new Nabu.UniqueList<Tile>();
+    public setProxyTasks: Nabu.UniqueList<Tile> = new Nabu.UniqueList<Tile>();
+
+    private async taskStatusActive(tile: Tile): Promise<void> {
+        if (!tile.deserialize) {
+            return;
+        }
+
+        if (!tile.machine) {
+            tile.machine = new Core.Machine(tile.game);
+            tile.machine.root.position.copyFrom(tile.position).addInPlaceFromFloats(0, 0.7, 0);
+            tile.machine.root.computeWorldMatrix(true);
+        }
+
+        if (tile.machine.parts.length === 0) {
+            await tile.deserialize();
+        }
+        
+        if (!tile.machine.ready) {
+            tile.machine.generateBaseMesh();
+        }
+
+        tile.machine.graphicQ = Core.GraphicQuality.High;
+        await tile.machine.instantiate();
+        tile.machine.reset();
+        tile.machine.play();
+        
+        tile.status = TileStatus.Active;
+    }
+
+    private async taskStatusNext(tile: Tile): Promise<void> {
+        if (!tile.deserialize) {
+            return;
+        }
+
+        if (!tile.machine) {
+            tile.machine = new Core.Machine(tile.game);
+            tile.machine.root.position.copyFrom(tile.position).addInPlaceFromFloats(0, 0.7, 0);
+            tile.machine.root.computeWorldMatrix(true);
+        }
+
+        if (tile.machine.parts.length === 0) {
+            await tile.deserialize();
+        }
+        
+        if (!tile.machine.ready) {
+            tile.machine.generateBaseMesh();
+        }
+
+        tile.machine.graphicQ = Core.GraphicQuality.VeryLow;
+        await tile.machine.instantiate();
+        
+        tile.status = TileStatus.Next;
+    }
+
+    private async taskStatusInactive(tile: Tile): Promise<void> {
+        if (!tile.deserialize) {
+            return;
+        }
+
+        if (!tile.machine) {
+            tile.machine = new Core.Machine(tile.game);
+            tile.machine.root.position.copyFrom(tile.position).addInPlaceFromFloats(0, 0.7, 0);
+            tile.machine.root.computeWorldMatrix(true);
+        }
+
+        if (tile.machine.parts.length === 0) {
+            await tile.deserialize();
+        }
+
+        if (!tile.machine.ready) {
+            tile.machine.generateBaseMesh();
+        }
+
+        tile.machine.dispose();
+        tile.status = TileStatus.Inactive;
+    }
+
+    private async taskStatusProxy(tile: Tile): Promise<void> {
+        if (!tile.deserialize) {
+            return;
+        }
+
+        tile.status = TileStatus.Proxy;
+    }
+
+    private _currentActiveTile: Tile;
+    public setCurrentActiveTile(tile: Tile): void {
+        if (tile === this._currentActiveTile) {
+            return;
+        }
+        this._currentActiveTile = tile;
+        let i = tile.i;
+        let j = tile.j;
+        this.addTask(tile, TileStatus.Active);
+        
+        this.addTask(tile.game.getTile(i + 1, j + 0), TileStatus.Next);
+        this.addTask(tile.game.getTile(i + 0, j + 1), TileStatus.Next);
+        this.addTask(tile.game.getTile(i - 1, j + 0), TileStatus.Next);
+        this.addTask(tile.game.getTile(i + 0, j - 1), TileStatus.Next);
+        this.addTask(tile.game.getTile(i + 1, j - 1), TileStatus.Next);
+        this.addTask(tile.game.getTile(i - 1, j + 1), TileStatus.Next);
+        
+        this.addTask(tile.game.getTile(i + 0, j + 2), TileStatus.Inactive);
+        this.addTask(tile.game.getTile(i + 1, j + 1), TileStatus.Inactive);
+        this.addTask(tile.game.getTile(i + 2, j + 0), TileStatus.Inactive);
+        this.addTask(tile.game.getTile(i + 2, j - 1), TileStatus.Inactive);
+        this.addTask(tile.game.getTile(i + 2, j - 2), TileStatus.Inactive);
+        this.addTask(tile.game.getTile(i + 1, j - 2), TileStatus.Inactive);
+        this.addTask(tile.game.getTile(i + 0, j - 2), TileStatus.Inactive);
+        this.addTask(tile.game.getTile(i - 1, j - 1), TileStatus.Inactive);
+        this.addTask(tile.game.getTile(i - 2, j + 0), TileStatus.Inactive);
+        this.addTask(tile.game.getTile(i - 2, j + 1), TileStatus.Inactive);
+        this.addTask(tile.game.getTile(i - 2, j + 2), TileStatus.Inactive);
+        this.addTask(tile.game.getTile(i - 1, j + 2), TileStatus.Inactive);
+    }
+
+    public busy: boolean;
+    public update(): void {
+        if (this.busy) {
+            return;
+        }
+        
+        if (this.setActiveTasks.length > 0) {
+            this.busy = true;
+            this.taskStatusActive(this.setActiveTasks.removeAt(0)).then( () => { this.busy = false; });
+            return;
+        }
+        
+        if (this.setNextTasks.length > 0) {
+            this.busy = true;
+            this.taskStatusNext(this.setNextTasks.removeAt(0)).then( () => { this.busy = false; });
+            return;
+        }
+        
+        if (this.setInactiveTasks.length > 0) {
+            this.busy = true;
+            this.taskStatusInactive(this.setInactiveTasks.removeAt(0)).then( () => { this.busy = false; });
+            return;
+        }
+        
+        if (this.setProxyTasks.length > 0) {
+            this.busy = true;
+            this.taskStatusProxy(this.setProxyTasks.removeAt(0)).then( () => { this.busy = false; });
+            return;
+        }
+    }
+
+    public addTask(tile: Tile, status: TileStatus): void {
+        if (!tile) {
+            return;
+        }
+        this.setActiveTasks.remove(tile);
+        this.setNextTasks.remove(tile);
+        this.setInactiveTasks.remove(tile);
+        this.setProxyTasks.remove(tile);
+
+        if (status === TileStatus.Active) {
+            this.setActiveTasks.push(tile);
+        }
+        if (status === TileStatus.Next) {
+            this.setNextTasks.push(tile);
+        }
+        if (status === TileStatus.Inactive) {
+            this.setInactiveTasks.push(tile);
+        }
+        if (status === TileStatus.Proxy) {
+            this.setProxyTasks.push(tile);
+        }
+    }
 }
 
 class Tile extends BABYLON.Mesh {
@@ -32,4 +208,18 @@ class Tile extends BABYLON.Mesh {
 
         this.position.y = (this.d / (2 * Tile.S_SIZE) + this.a / (2 * Math.PI)) * 0.3;
     }
+
+    public async instantiate(): Promise<void> {
+        let hexaTileData = await this.game.vertexDataLoader.getAtIndex("./datas/meshes/hexa-tile.babylon");
+        let colorizedData = Mummu.CloneVertexData(hexaTileData);
+        let color = new BABYLON.Color3(
+            0.8 + 0.2 * Math.random(),
+            0.8 + 0.2 * Math.random(),
+            0.8 + 0.2 * Math.random()
+        );
+        Mummu.ColorizeVertexDataInPlace(colorizedData, color);
+        colorizedData.applyToMesh(this);
+    }
+
+    public deserialize: () => Promise<void>;
 }

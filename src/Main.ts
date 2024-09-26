@@ -131,8 +131,12 @@ class Game {
     public physicDT: number = 0.0005;
 
     public materials: Core.MainMaterials;
-    public machine: Core.Machine;
-    public machines: Core.Machine[] = [];
+    public get machine(): Core.Machine {
+        let tile = this.getTile(0, 0);
+        if (tile) {
+            return tile.machine;
+        }
+    }
     public spotLight: BABYLON.SpotLight;
     public shadowGenerator: BABYLON.ShadowGenerator;
 
@@ -177,6 +181,7 @@ class Game {
     public gridKMax: number;
 
     public sortedTiles: Tile[] = [];
+    public tileManager: TileManager;
     public tiles: Map<number, Map<number, Tile>> = new Map<number, Map<number, Tile>>();
     public getTile(i: number, j: number): Tile {
         if (this.tiles.get(i)) {
@@ -237,38 +242,6 @@ class Game {
         this.scene = new BABYLON.Scene(this.engine);
         this.screenRatio = this.engine.getRenderWidth() / this.engine.getRenderHeight();
         this.vertexDataLoader = new Mummu.VertexDataLoader(this.scene);
-        
-        let hexaTileData = await this.vertexDataLoader.getAtIndex("./datas/meshes/hexa-tile.babylon");
-
-        
-        for (let i = -10; i <= 10; i++) {
-            for (let j = -10; j <= 10; j++) {
-                let x = i * 1.5 * Tile.SIZE;
-                let z = j * 2 * Tile.S_SIZE + i * Tile.S_SIZE;
-                let d = Math.sqrt(x * x + z * z);
-                if (d < 30) {
-                    let tile = new Tile(i, j, this);
-                    this.setTile(i, j, tile);
-                    this.sortedTiles.push(tile);
-
-                    let colorizedData = Mummu.CloneVertexData(hexaTileData);
-                    let color = new BABYLON.Color3(
-                        0.8 + 0.2 * Math.random(),
-                        0.8 + 0.2 * Math.random(),
-                        0.8 + 0.2 * Math.random()
-                    );
-                    Mummu.ColorizeVertexDataInPlace(colorizedData, color);
-                    colorizedData.applyToMesh(tile);
-                }
-            }
-        }
-
-        this.sortedTiles.sort((t1, t2) => {
-            if (t1.d === t2.d) {
-                return t1.a - t2.a;
-            }
-            return t1.d - t2.d;
-        })
 
         this.materials = new Core.MainMaterials(this);
 
@@ -294,25 +267,13 @@ class Game {
 
         this.camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 1.6, -2));
         this.camera.minZ = 0.1;
-        this.camera.speed = 0.2;
+        this.camera.speed = 0.05;
 
         this.updateShadowGenerator();
 
         this.camera.attachControl();
         this.camera.getScene();
         
-        this.machine = new Core.Machine(this);
-        this.machine.root.position.copyFrom(this.sortedTiles[0].position).addInPlaceFromFloats(0, 0.7, 0);
-        this.machine.root.computeWorldMatrix(true);
-        
-        this.machines[0] = this.machine;
-        for (let i = 1; i <= 2; i++) {
-            let machine = new Core.Machine(this);
-            machine.root.position.copyFrom(this.sortedTiles[i].position).addInPlaceFromFloats(0, 0.7, 0);
-            machine.root.computeWorldMatrix(true);
-            this.machines.push(machine);
-        }
-
         let waitForMachineReady = () => {
             if (this.machine && this.machine.ready) {
                 
@@ -334,23 +295,62 @@ class Game {
         }
         waitForMachineInstantiated();
 
-        this.machine.deserialize(fallbackMachine);
-        this.machine.generateBaseMesh();
-        this.machine.instantiate().then(() => {
-            this.machine.play();
-        });
+        this.tileManager = new TileManager();
+                
+        for (let i = -10; i <= 10; i++) {
+            for (let j = -10; j <= 10; j++) {
+                let x = i * 1.5 * Tile.SIZE;
+                let z = j * 2 * Tile.S_SIZE + i * Tile.S_SIZE;
+                let d = Math.sqrt(x * x + z * z);
+                if (d < 30) {
+                    let tile = new Tile(i, j, this);
+                    this.setTile(i, j, tile);
+                    this.sortedTiles.push(tile);
+                    await tile.instantiate();
+                }
+            }
+        }
 
-        for (let i = 1; i <= 2; i++) {
-            let machine = this.machines[i];
+        this.sortedTiles.sort((t1, t2) => {
+            if (t1.d === t2.d) {
+                return t1.a - t2.a;
+            }
+            return t1.d - t2.d;
+        })
 
-            let dataResponse = await fetch("./datas/demos/demo-" + i.toFixed(0) + ".json");
-            if (dataResponse) {
-                let data = await dataResponse.json() as Core.IMachineData;
-                machine.deserialize(data);
-                machine.generateBaseMesh();
-                machine.instantiate().then(() => {
-                    machine.play();
-                });
+        this.sortedTiles[0].deserialize = async () => {
+            this.sortedTiles[0].machine.deserialize(fallbackMachine);
+        }
+        for (let i = 1; i <= 11; i++) {
+            let I = i;
+
+            this.sortedTiles[i].deserialize = async () => {
+                let dataResponse = await fetch("./datas/demos/demo-" + I.toFixed(0) + ".json");
+                if (dataResponse) {
+                    let data = await dataResponse.json() as Core.IMachineData;
+                    this.sortedTiles[i].machine.deserialize(data);
+                }
+            }
+        }
+
+        let indexes = [
+            1019147075,
+            1037419437,
+            1045213988,
+            1061888119,
+            1065551463,
+            1084538378,
+            1098216871
+        ];
+        for (let i = 0; i < indexes.length; i++) {
+            let I = i;
+
+            this.sortedTiles[I + 12].deserialize = async () => {
+                let dataResponse = await fetch(SHARE_SERVICE_PATH + "machine/" + indexes[I].toFixed(0));
+                if (dataResponse) {
+                    let data = await dataResponse.json() as Core.IMachineData;
+                    this.sortedTiles[I + 12].machine.deserialize(data);
+                }
             }
         }
 
@@ -361,15 +361,6 @@ class Game {
 
         this.musicDisplay = new MusicDisplay(document.getElementById("music-display") as unknown as HTMLCanvasElement, this);
         this.musicDisplay.reset();
-        this.machine.onPlayCallbacks.push(() => {
-            this.musicDisplay.reset();
-            let xylophones = this.machine.decors.filter(decor => { return decor instanceof Core.Xylophone; });
-            xylophones.forEach(xylophone => {
-                (xylophone as Core.Xylophone).onSoundPlay = () => {
-                    this.musicDisplay.drawNote(xylophone as Core.Xylophone);
-                }
-            })
-        })
 	}
 
 	public animate(): void {
@@ -408,29 +399,17 @@ class Game {
             let tile = this.getTileAtPos(this.camera.position.x, this.camera.position.z);
             if (tile) {
                 this.camera.position.y = this.camera.position.y * 0.9 + (tile.position.y + 1) * 0.1;
-                console.log(tile.a.toFixed(3));
+                this.tileManager.setCurrentActiveTile(tile);
+                if (tile.machine && tile.machine.ready && tile.machine.instantiated) {
+                    tile.machine.update();
+                }
             }
-        }
-
-        if (this.DEBUG_MODE) {
-            let camPos = this.camera.position;
-            let camTarget = this.camera.target;
-            window.localStorage.setItem("camera-position", JSON.stringify({ x: camPos.x, y: camPos.y, z: camPos.z }));
-            window.localStorage.setItem("camera-target", JSON.stringify({ x: camTarget.x, y: camTarget.y, z: camTarget.z }));
-        }
-
-        if (!this.DEBUG_MODE) {
-            this.camera.target.x = Nabu.MinMax(this.camera.target.x, this.machine.baseMeshMinX, this.machine.baseMeshMaxX);
-            this.camera.target.y = Nabu.MinMax(this.camera.target.y, this.machine.baseMeshMinY, this.machine.baseMeshMaxY);
-            this.camera.target.z = Nabu.MinMax(this.camera.target.z, this.machine.baseMeshMinZ, this.machine.baseMeshMaxZ);
         }
 
         window.localStorage.setItem("saved-main-volume", this.mainVolume.toFixed(2));
         window.localStorage.setItem("saved-time-factor", this.targetTimeFactor.toFixed(2));
 
-        this.machines.forEach(machine => {
-            machine.update();
-        })
+        this.tileManager.update();
     }
 
     public machineEditorContainerIsDisplayed: boolean = false;
