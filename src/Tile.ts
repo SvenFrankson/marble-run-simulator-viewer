@@ -2,7 +2,8 @@ enum TileStatus {
     Active,
     Next,
     Inactive,
-    Proxy
+    Proxy,
+    Unset
 }
 
 class TileManager {
@@ -16,9 +17,13 @@ class TileManager {
         if (!tile.deserialize) {
             return;
         }
+        if (tile.status === TileStatus.Active) {
+            return;
+        }
 
         if (!tile.machine) {
             tile.machine = new Core.Machine(tile.game);
+            tile.machine.baseColor = tile.machineBaseColor;
             tile.machine.root.position.copyFrom(tile.position).addInPlaceFromFloats(0, 0.7, 0);
             tile.machine.root.computeWorldMatrix(true);
         }
@@ -30,6 +35,8 @@ class TileManager {
         if (!tile.machine.ready) {
             tile.machine.generateBaseMesh();
         }
+        tile.machine.root.position.copyFrom(tile.position).addInPlaceFromFloats(0, 0.7 - tile.machine.baseMeshMinY, 0);
+        tile.machine.root.computeWorldMatrix(true);
 
         tile.machine.graphicQ = Core.GraphicQuality.High;
         await tile.machine.instantiate();
@@ -43,9 +50,13 @@ class TileManager {
         if (!tile.deserialize) {
             return;
         }
+        if (tile.status === TileStatus.Next) {
+            return;
+        }
 
         if (!tile.machine) {
             tile.machine = new Core.Machine(tile.game);
+            tile.machine.baseColor = tile.machineBaseColor;
             tile.machine.root.position.copyFrom(tile.position).addInPlaceFromFloats(0, 0.7, 0);
             tile.machine.root.computeWorldMatrix(true);
         }
@@ -57,6 +68,8 @@ class TileManager {
         if (!tile.machine.ready) {
             tile.machine.generateBaseMesh();
         }
+        tile.machine.root.position.copyFrom(tile.position).addInPlaceFromFloats(0, 0.7 - tile.machine.baseMeshMinY, 0);
+        tile.machine.root.computeWorldMatrix(true);
 
         tile.machine.graphicQ = Core.GraphicQuality.VeryLow;
         await tile.machine.instantiate();
@@ -68,9 +81,13 @@ class TileManager {
         if (!tile.deserialize) {
             return;
         }
+        if (tile.status === TileStatus.Inactive) {
+            return;
+        }
 
         if (!tile.machine) {
             tile.machine = new Core.Machine(tile.game);
+            tile.machine.baseColor = tile.machineBaseColor;
             tile.machine.root.position.copyFrom(tile.position).addInPlaceFromFloats(0, 0.7, 0);
             tile.machine.root.computeWorldMatrix(true);
         }
@@ -82,6 +99,8 @@ class TileManager {
         if (!tile.machine.ready) {
             tile.machine.generateBaseMesh();
         }
+        tile.machine.root.position.copyFrom(tile.position).addInPlaceFromFloats(0, 0.7 - tile.machine.baseMeshMinY, 0);
+        tile.machine.root.computeWorldMatrix(true);
 
         tile.machine.dispose();
         tile.status = TileStatus.Inactive;
@@ -89,6 +108,9 @@ class TileManager {
 
     private async taskStatusProxy(tile: Tile): Promise<void> {
         if (!tile.deserialize) {
+            return;
+        }
+        if (tile.status === TileStatus.Proxy) {
             return;
         }
 
@@ -105,12 +127,12 @@ class TileManager {
         let j = tile.j;
         this.addTask(tile, TileStatus.Active);
         
-        this.addTask(tile.game.getTile(i + 1, j + 0), TileStatus.Next);
-        this.addTask(tile.game.getTile(i + 0, j + 1), TileStatus.Next);
-        this.addTask(tile.game.getTile(i - 1, j + 0), TileStatus.Next);
-        this.addTask(tile.game.getTile(i + 0, j - 1), TileStatus.Next);
-        this.addTask(tile.game.getTile(i + 1, j - 1), TileStatus.Next);
-        this.addTask(tile.game.getTile(i - 1, j + 1), TileStatus.Next);
+        this.addTask(tile.game.getTile(i + 1, j + 0), TileStatus.Inactive);
+        this.addTask(tile.game.getTile(i + 0, j + 1), TileStatus.Inactive);
+        this.addTask(tile.game.getTile(i - 1, j + 0), TileStatus.Inactive);
+        this.addTask(tile.game.getTile(i + 0, j - 1), TileStatus.Inactive);
+        this.addTask(tile.game.getTile(i + 1, j - 1), TileStatus.Inactive);
+        this.addTask(tile.game.getTile(i - 1, j + 1), TileStatus.Inactive);
         
         this.addTask(tile.game.getTile(i + 0, j + 2), TileStatus.Inactive);
         this.addTask(tile.game.getTile(i + 1, j + 1), TileStatus.Inactive);
@@ -187,7 +209,8 @@ class Tile extends BABYLON.Mesh {
     public static S_SIZE = Math.sqrt(Tile.SIZE * Tile.SIZE - (Tile.SIZE * 0.5) * (Tile.SIZE * 0.5));
 
     public machine: Core.Machine;
-    public status: TileStatus;
+    public machineBaseColor: string = "#ffffff";
+    public status: TileStatus = TileStatus.Unset;
     public d: number = 0;
     public a: number = 0;
 
@@ -212,11 +235,8 @@ class Tile extends BABYLON.Mesh {
     public async instantiate(): Promise<void> {
         let hexaTileData = await this.game.vertexDataLoader.getAtIndex("./datas/meshes/hexa-tile.babylon");
         let colorizedData = Mummu.CloneVertexData(hexaTileData);
-        let color = new BABYLON.Color3(
-            0.8 + 0.2 * Math.random(),
-            0.8 + 0.2 * Math.random(),
-            0.8 + 0.2 * Math.random()
-        );
+        let v = 0.6 + 0.3 * Math.random();
+        let color = new BABYLON.Color3(v + 0.1, v, v);
         Mummu.ColorizeVertexDataInPlace(colorizedData, color);
         colorizedData.applyToMesh(this);
     }

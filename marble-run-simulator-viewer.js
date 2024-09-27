@@ -444,6 +444,8 @@ class Game {
         };
         waitForMachineInstantiated();
         this.tileManager = new TileManager();
+        let colors = [];
+        colors.push("#C8E0F4");
         for (let i = -10; i <= 10; i++) {
             for (let j = -10; j <= 10; j++) {
                 let x = i * 1.5 * Tile.SIZE;
@@ -451,6 +453,8 @@ class Game {
                 let d = Math.sqrt(x * x + z * z);
                 if (d < 30) {
                     let tile = new Tile(i, j, this);
+                    let r = Math.floor(colors.length * Math.random());
+                    tile.machineBaseColor = colors[r];
                     this.setTile(i, j, tile);
                     this.sortedTiles.push(tile);
                     await tile.instantiate();
@@ -477,18 +481,85 @@ class Game {
             };
         }
         let indexes = [
-            1019147075,
-            1037419437,
-            1045213988,
-            1061888119,
-            1065551463,
-            1084538378,
-            1098216871
+            "1011366399",
+            "1019147075",
+            "1037419437",
+            "1045213988",
+            "1061888119",
+            "1065551463",
+            "1083269871",
+            "1084538378",
+            "109759798",
+            "1098216871",
+            "1121098926",
+            "1123783120",
+            "112635266",
+            "1128859484",
+            "1137446199",
+            "1142273500",
+            "1147760102",
+            "1156584799",
+            "116183920",
+            "1163885088",
+            "1172379126",
+            "1174810267",
+            "117808814",
+            "1190924914",
+            "1194105757",
+            "119707753",
+            "1199381139",
+            "1239417218",
+            "1240137851",
+            "1246014129",
+            "1263268620",
+            "1291185131",
+            "129870986",
+            "1306663720",
+            "1313140486",
+            "1313564",
+            "1314179096",
+            "1315320106",
+            "1326703722",
+            "1328436701",
+            "1345539722",
+            "1346508362",
+            "1379866936",
+            "1422799047",
+            "1427854309",
+            "1439185923",
+            "1457254246",
+            "1479807624",
+            "1485674046",
+            "14888229",
+            "1492314926",
+            "1506233064",
+            "1514081276",
+            "1529012573",
+            "1538334970",
+            "1544583560",
+            "15604199",
+            "1581907073",
+            "1601688580",
+            "1611885010",
+            "1617914664",
+            "1645154028",
+            "1660383519",
+            "1667669077",
+            "1671427816",
+            "167512147",
+            "1715347022",
+            "1733274289",
+            "1737541570",
+            "1748568032",
+            "1753776883",
+            "1765026704",
+            "1767642752",
+            "1783029634"
         ];
         for (let i = 0; i < indexes.length; i++) {
             let I = i;
             this.sortedTiles[I + 12].deserialize = async () => {
-                let dataResponse = await fetch(SHARE_SERVICE_PATH + "machine/" + indexes[I].toFixed(0));
+                let dataResponse = await fetch(SHARE_SERVICE_PATH + "machine/" + indexes[I]);
                 if (dataResponse) {
                     let data = await dataResponse.json();
                     this.sortedTiles[I + 12].machine.deserialize(data);
@@ -500,6 +571,9 @@ class Game {
         this.soonView.setGame(this);
         this.musicDisplay = new MusicDisplay(document.getElementById("music-display"), this);
         this.musicDisplay.reset();
+        let debugPerf = new DebugPerf(this);
+        debugPerf.initialize();
+        debugPerf.show();
     }
     animate() {
         this.engine.runRenderLoop(() => {
@@ -529,9 +603,13 @@ class Game {
             let tile = this.getTileAtPos(this.camera.position.x, this.camera.position.z);
             if (tile) {
                 this.camera.position.y = this.camera.position.y * 0.9 + (tile.position.y + 1) * 0.1;
-                this.tileManager.setCurrentActiveTile(tile);
                 if (tile.machine && tile.machine.ready && tile.machine.instantiated) {
                     tile.machine.update();
+                }
+                let dd = tile.position.subtract(this.camera.position);
+                dd.y = 0;
+                if (dd.length() < Tile.S_SIZE * 0.9) {
+                    this.tileManager.setCurrentActiveTile(tile);
                 }
             }
         }
@@ -683,6 +761,7 @@ var TileStatus;
     TileStatus[TileStatus["Next"] = 1] = "Next";
     TileStatus[TileStatus["Inactive"] = 2] = "Inactive";
     TileStatus[TileStatus["Proxy"] = 3] = "Proxy";
+    TileStatus[TileStatus["Unset"] = 4] = "Unset";
 })(TileStatus || (TileStatus = {}));
 class TileManager {
     constructor() {
@@ -695,8 +774,12 @@ class TileManager {
         if (!tile.deserialize) {
             return;
         }
+        if (tile.status === TileStatus.Active) {
+            return;
+        }
         if (!tile.machine) {
             tile.machine = new Core.Machine(tile.game);
+            tile.machine.baseColor = tile.machineBaseColor;
             tile.machine.root.position.copyFrom(tile.position).addInPlaceFromFloats(0, 0.7, 0);
             tile.machine.root.computeWorldMatrix(true);
         }
@@ -706,6 +789,8 @@ class TileManager {
         if (!tile.machine.ready) {
             tile.machine.generateBaseMesh();
         }
+        tile.machine.root.position.copyFrom(tile.position).addInPlaceFromFloats(0, 0.7 - tile.machine.baseMeshMinY, 0);
+        tile.machine.root.computeWorldMatrix(true);
         tile.machine.graphicQ = Core.GraphicQuality.High;
         await tile.machine.instantiate();
         tile.machine.reset();
@@ -716,8 +801,12 @@ class TileManager {
         if (!tile.deserialize) {
             return;
         }
+        if (tile.status === TileStatus.Next) {
+            return;
+        }
         if (!tile.machine) {
             tile.machine = new Core.Machine(tile.game);
+            tile.machine.baseColor = tile.machineBaseColor;
             tile.machine.root.position.copyFrom(tile.position).addInPlaceFromFloats(0, 0.7, 0);
             tile.machine.root.computeWorldMatrix(true);
         }
@@ -727,6 +816,8 @@ class TileManager {
         if (!tile.machine.ready) {
             tile.machine.generateBaseMesh();
         }
+        tile.machine.root.position.copyFrom(tile.position).addInPlaceFromFloats(0, 0.7 - tile.machine.baseMeshMinY, 0);
+        tile.machine.root.computeWorldMatrix(true);
         tile.machine.graphicQ = Core.GraphicQuality.VeryLow;
         await tile.machine.instantiate();
         tile.status = TileStatus.Next;
@@ -735,8 +826,12 @@ class TileManager {
         if (!tile.deserialize) {
             return;
         }
+        if (tile.status === TileStatus.Inactive) {
+            return;
+        }
         if (!tile.machine) {
             tile.machine = new Core.Machine(tile.game);
+            tile.machine.baseColor = tile.machineBaseColor;
             tile.machine.root.position.copyFrom(tile.position).addInPlaceFromFloats(0, 0.7, 0);
             tile.machine.root.computeWorldMatrix(true);
         }
@@ -746,11 +841,16 @@ class TileManager {
         if (!tile.machine.ready) {
             tile.machine.generateBaseMesh();
         }
+        tile.machine.root.position.copyFrom(tile.position).addInPlaceFromFloats(0, 0.7 - tile.machine.baseMeshMinY, 0);
+        tile.machine.root.computeWorldMatrix(true);
         tile.machine.dispose();
         tile.status = TileStatus.Inactive;
     }
     async taskStatusProxy(tile) {
         if (!tile.deserialize) {
+            return;
+        }
+        if (tile.status === TileStatus.Proxy) {
             return;
         }
         tile.status = TileStatus.Proxy;
@@ -763,12 +863,12 @@ class TileManager {
         let i = tile.i;
         let j = tile.j;
         this.addTask(tile, TileStatus.Active);
-        this.addTask(tile.game.getTile(i + 1, j + 0), TileStatus.Next);
-        this.addTask(tile.game.getTile(i + 0, j + 1), TileStatus.Next);
-        this.addTask(tile.game.getTile(i - 1, j + 0), TileStatus.Next);
-        this.addTask(tile.game.getTile(i + 0, j - 1), TileStatus.Next);
-        this.addTask(tile.game.getTile(i + 1, j - 1), TileStatus.Next);
-        this.addTask(tile.game.getTile(i - 1, j + 1), TileStatus.Next);
+        this.addTask(tile.game.getTile(i + 1, j + 0), TileStatus.Inactive);
+        this.addTask(tile.game.getTile(i + 0, j + 1), TileStatus.Inactive);
+        this.addTask(tile.game.getTile(i - 1, j + 0), TileStatus.Inactive);
+        this.addTask(tile.game.getTile(i + 0, j - 1), TileStatus.Inactive);
+        this.addTask(tile.game.getTile(i + 1, j - 1), TileStatus.Inactive);
+        this.addTask(tile.game.getTile(i - 1, j + 1), TileStatus.Inactive);
         this.addTask(tile.game.getTile(i + 0, j + 2), TileStatus.Inactive);
         this.addTask(tile.game.getTile(i + 1, j + 1), TileStatus.Inactive);
         this.addTask(tile.game.getTile(i + 2, j + 0), TileStatus.Inactive);
@@ -835,6 +935,8 @@ class Tile extends BABYLON.Mesh {
         this.i = i;
         this.j = j;
         this.game = game;
+        this.machineBaseColor = "#ffffff";
+        this.status = TileStatus.Unset;
         this.d = 0;
         this.a = 0;
         let x = i * 1.5 * Tile.SIZE;
@@ -851,7 +953,8 @@ class Tile extends BABYLON.Mesh {
     async instantiate() {
         let hexaTileData = await this.game.vertexDataLoader.getAtIndex("./datas/meshes/hexa-tile.babylon");
         let colorizedData = Mummu.CloneVertexData(hexaTileData);
-        let color = new BABYLON.Color3(0.8 + 0.2 * Math.random(), 0.8 + 0.2 * Math.random(), 0.8 + 0.2 * Math.random());
+        let v = 0.6 + 0.3 * Math.random();
+        let color = new BABYLON.Color3(v + 0.1, v, v);
         Mummu.ColorizeVertexDataInPlace(colorizedData, color);
         colorizedData.applyToMesh(this);
     }
