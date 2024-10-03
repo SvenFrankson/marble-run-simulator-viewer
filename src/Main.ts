@@ -96,7 +96,7 @@ class Game {
     }
     public screenRatio: number = 1;
 
-    public camera: BABYLON.FreeCamera;
+    public camera: BABYLON.UniversalCamera;
     //public camera: BABYLON.ArcRotateCamera;
     public camBackGround: BABYLON.FreeCamera;
     public horizontalBlur: BABYLON.BlurPostProcess;
@@ -265,14 +265,16 @@ class Game {
         skybox.material = skyboxMaterial;
         skybox.rotation.y = 0.16 * Math.PI;
 
-        this.camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 1.6, -2));
+        this.camera = new BABYLON.UniversalCamera("camera", new BABYLON.Vector3(0, 1.6, -2));
         this.camera.minZ = 0.1;
-        this.camera.speed = 0.05;
 
         this.updateShadowGenerator();
 
         this.camera.attachControl();
         this.camera.getScene();
+
+        this.camera.speed = 0.05;
+        this.camera.gamepadAngularSensibility = 1000;
         
         let waitForMachineReady = () => {
             if (this.machine && this.machine.ready) {
@@ -298,7 +300,7 @@ class Game {
         this.tileManager = new TileManager();
 
         let colors = [];
-        colors.push("#C8E0F4");
+        colors.push("#FFFFFF");
 
         for (let i = -10; i <= 10; i++) {
             for (let j = -10; j <= 10; j++) {
@@ -434,9 +436,9 @@ class Game {
         this.musicDisplay = new MusicDisplay(document.getElementById("music-display") as unknown as HTMLCanvasElement, this);
         this.musicDisplay.reset();
 
-        let debugPerf = new DebugPerf(this);
-        debugPerf.initialize();
-        debugPerf.show();
+        //let debugPerf = new DebugPerf(this);
+        //debugPerf.initialize();
+        //debugPerf.show();
 	}
 
 	public animate(): void {

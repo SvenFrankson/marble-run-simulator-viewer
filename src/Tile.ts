@@ -61,6 +61,10 @@ class TileManager {
             tile.machine.root.computeWorldMatrix(true);
         }
 
+        if (tile.machine.graphicQ === Core.GraphicQuality.High) {
+            tile.machine.dispose();
+        }
+        
         if (tile.machine.parts.length === 0) {
             await tile.deserialize();
         }
@@ -71,7 +75,7 @@ class TileManager {
         tile.machine.root.position.copyFrom(tile.position).addInPlaceFromFloats(0, 0.7 - tile.machine.baseMeshMinY, 0);
         tile.machine.root.computeWorldMatrix(true);
 
-        tile.machine.graphicQ = Core.GraphicQuality.VeryLow;
+        tile.machine.graphicQ = Core.GraphicQuality.Proxy;
         await tile.machine.instantiate();
         
         tile.status = TileStatus.Next;
@@ -127,12 +131,12 @@ class TileManager {
         let j = tile.j;
         this.addTask(tile, TileStatus.Active);
         
-        this.addTask(tile.game.getTile(i + 1, j + 0), TileStatus.Inactive);
-        this.addTask(tile.game.getTile(i + 0, j + 1), TileStatus.Inactive);
-        this.addTask(tile.game.getTile(i - 1, j + 0), TileStatus.Inactive);
-        this.addTask(tile.game.getTile(i + 0, j - 1), TileStatus.Inactive);
-        this.addTask(tile.game.getTile(i + 1, j - 1), TileStatus.Inactive);
-        this.addTask(tile.game.getTile(i - 1, j + 1), TileStatus.Inactive);
+        this.addTask(tile.game.getTile(i + 1, j + 0), TileStatus.Next);
+        this.addTask(tile.game.getTile(i + 0, j + 1), TileStatus.Next);
+        this.addTask(tile.game.getTile(i - 1, j + 0), TileStatus.Next);
+        this.addTask(tile.game.getTile(i + 0, j - 1), TileStatus.Next);
+        this.addTask(tile.game.getTile(i + 1, j - 1), TileStatus.Next);
+        this.addTask(tile.game.getTile(i - 1, j + 1), TileStatus.Next);
         
         this.addTask(tile.game.getTile(i + 0, j + 2), TileStatus.Inactive);
         this.addTask(tile.game.getTile(i + 1, j + 1), TileStatus.Inactive);

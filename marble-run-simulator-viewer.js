@@ -418,12 +418,13 @@ class Game {
         skyboxMaterial.emissiveTexture = skyTexture;
         skybox.material = skyboxMaterial;
         skybox.rotation.y = 0.16 * Math.PI;
-        this.camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 1.6, -2));
+        this.camera = new BABYLON.UniversalCamera("camera", new BABYLON.Vector3(0, 1.6, -2));
         this.camera.minZ = 0.1;
-        this.camera.speed = 0.05;
         this.updateShadowGenerator();
         this.camera.attachControl();
         this.camera.getScene();
+        this.camera.speed = 0.05;
+        this.camera.gamepadAngularSensibility = 1000;
         let waitForMachineReady = () => {
             if (this.machine && this.machine.ready) {
             }
@@ -445,7 +446,7 @@ class Game {
         waitForMachineInstantiated();
         this.tileManager = new TileManager();
         let colors = [];
-        colors.push("#C8E0F4");
+        colors.push("#FFFFFF");
         for (let i = -10; i <= 10; i++) {
             for (let j = -10; j <= 10; j++) {
                 let x = i * 1.5 * Tile.SIZE;
@@ -571,9 +572,9 @@ class Game {
         this.soonView.setGame(this);
         this.musicDisplay = new MusicDisplay(document.getElementById("music-display"), this);
         this.musicDisplay.reset();
-        let debugPerf = new DebugPerf(this);
-        debugPerf.initialize();
-        debugPerf.show();
+        //let debugPerf = new DebugPerf(this);
+        //debugPerf.initialize();
+        //debugPerf.show();
     }
     animate() {
         this.engine.runRenderLoop(() => {
@@ -810,6 +811,9 @@ class TileManager {
             tile.machine.root.position.copyFrom(tile.position).addInPlaceFromFloats(0, 0.7, 0);
             tile.machine.root.computeWorldMatrix(true);
         }
+        if (tile.machine.graphicQ === Core.GraphicQuality.High) {
+            tile.machine.dispose();
+        }
         if (tile.machine.parts.length === 0) {
             await tile.deserialize();
         }
@@ -818,7 +822,7 @@ class TileManager {
         }
         tile.machine.root.position.copyFrom(tile.position).addInPlaceFromFloats(0, 0.7 - tile.machine.baseMeshMinY, 0);
         tile.machine.root.computeWorldMatrix(true);
-        tile.machine.graphicQ = Core.GraphicQuality.VeryLow;
+        tile.machine.graphicQ = Core.GraphicQuality.Proxy;
         await tile.machine.instantiate();
         tile.status = TileStatus.Next;
     }
@@ -863,12 +867,12 @@ class TileManager {
         let i = tile.i;
         let j = tile.j;
         this.addTask(tile, TileStatus.Active);
-        this.addTask(tile.game.getTile(i + 1, j + 0), TileStatus.Inactive);
-        this.addTask(tile.game.getTile(i + 0, j + 1), TileStatus.Inactive);
-        this.addTask(tile.game.getTile(i - 1, j + 0), TileStatus.Inactive);
-        this.addTask(tile.game.getTile(i + 0, j - 1), TileStatus.Inactive);
-        this.addTask(tile.game.getTile(i + 1, j - 1), TileStatus.Inactive);
-        this.addTask(tile.game.getTile(i - 1, j + 1), TileStatus.Inactive);
+        this.addTask(tile.game.getTile(i + 1, j + 0), TileStatus.Next);
+        this.addTask(tile.game.getTile(i + 0, j + 1), TileStatus.Next);
+        this.addTask(tile.game.getTile(i - 1, j + 0), TileStatus.Next);
+        this.addTask(tile.game.getTile(i + 0, j - 1), TileStatus.Next);
+        this.addTask(tile.game.getTile(i + 1, j - 1), TileStatus.Next);
+        this.addTask(tile.game.getTile(i - 1, j + 1), TileStatus.Next);
         this.addTask(tile.game.getTile(i + 0, j + 2), TileStatus.Inactive);
         this.addTask(tile.game.getTile(i + 1, j + 1), TileStatus.Inactive);
         this.addTask(tile.game.getTile(i + 2, j + 0), TileStatus.Inactive);
